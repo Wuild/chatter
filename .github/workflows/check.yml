@@ -1,0 +1,29 @@
+name: Lua checks
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Lua test and lint tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y luajit luarocks
+          sudo luarocks install luacheck 1.2.0
+      - name: Check Lua formatting
+        uses: JohnnyMorganz/stylua-action@v4
+        with:
+          version: v2.3.1
+          args: --check --verify scripts extensions locales tests .luacheckrc
+          token: ''
+      - name: Lint and test
+        run: |
+          python3 tools/lua_spacing.py --check
+          make lint test

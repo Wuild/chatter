@@ -1,0 +1,23 @@
+Linux samples copied unchanged from this computer's active GNOME sound theme:
+org.gnome.desktop.sound theme-name = freedesktop
+
+soft-ping.ogg: /usr/share/sounds/freedesktop/stereo/message.oga
+chime.ogg: /usr/share/sounds/freedesktop/stereo/message-new-instant.oga
+bell.ogg: /usr/share/sounds/freedesktop/stereo/bell.oga
+all-done.ogg: /usr/share/sounds/freedesktop/stereo/complete.oga
+tick.ogg: /usr/share/sounds/freedesktop/stereo/dialog-information.oga
+heads-up.ogg: /usr/share/sounds/freedesktop/stereo/window-attention.oga
+welcome.ogg: /usr/share/sounds/freedesktop/stereo/service-login.oga
+Upstream project: sound-theme-freedesktop (freedesktop.org).
+
+supplied-notification.ogg: user-supplied universfield-new-notification-09-352705.mp3.
+Trimmed from 0.09 to 0.72 seconds with 3 ms start and 40 ms end fades.
+Encoded as stereo Vorbis at 48 kHz. No claim of original authorship.
+
+WIM classic sounds copied unchanged from the original MIT-licensed repository:
+https://github.com/sylvanaar/wow-instant-messenger
+Pinned revision: acacc74e0448b1b63e6243dbbf3dc5dbec9dc05b
+wim-whisper.ogg: Sounds/wisp.OGG (registered by WIM as "IM")
+wim-chat-blip.ogg: Sounds/chat.OGG (registered by WIM as "Chat Blip")
+Copyright (c) 2020 Sylvanaar (Jon S Akhtar).
+See WIM-LICENSE.txt for the included MIT license. WIM installation is not required.

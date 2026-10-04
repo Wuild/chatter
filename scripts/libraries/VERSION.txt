@@ -1,0 +1,5 @@
+Official WoWUIDev/Ace3
+https://github.com/WoWUIDev/Ace3
+Commit: 40f4cc1356ae7fcc0cf71fc0a19dc7d50d6ae6c2
+Retrieved: 2026-10-03
+AceLocale-3.0 added from the same pinned commit on 2026-10-04.

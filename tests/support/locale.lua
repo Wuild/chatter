@@ -1,0 +1,14 @@
+-- Load the real English catalog without changing each harness's library mocks.
+local addon = ...
+local savedStub, savedLocale = LibStub, GetLocale
+LibStub = nil
+GetLocale = function()
+    return "enUS"
+end
+
+assert(loadfile("scripts/libraries/LibStub/LibStub.lua"))()
+assert(loadfile("scripts/libraries/AceLocale-3.0/AceLocale-3.0.lua"))()
+assert(loadfile("locales/enUS.lua"))()
+assert(loadfile("scripts/locale.lua"))("Chatter", addon)
+LibStub, GetLocale = savedStub, savedLocale
+assert(loadfile("scripts/filters.lua"))("Chatter", addon)

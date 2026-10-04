@@ -1,0 +1,29 @@
+# Local editor settings and temporary files
+/.idea/
+/.vscode/
+*.swp
+*.swo
+*~
+
+# Operating system metadata
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Python and Lua tooling caches
+__pycache__/
+*.py[cod]
+*.luac
+.luacheckcache
+/.venv/
+
+# Local build outputs and addon packages
+/build/
+/dist/
+/Chatter*.zip
+*.log
+
+# Local environment configuration
+.env
+.env.*
+!.env.example

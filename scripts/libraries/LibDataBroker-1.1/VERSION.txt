@@ -1,0 +1,2 @@
+LibDataBroker-1.1 minor 4, unmodified source from the installed Prat-3.0 bundle.
+Upstream: https://github.com/tekkub/libdatabroker-1-1

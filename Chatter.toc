@@ -1,0 +1,42 @@
+## Interface: 16001, 120100, 11509, 20506, 38002, 40402, 50504
+## Title: Chatter
+## Notes: Whisper conversations for Retail, Classic, Anniversary and Forever
+## Author: Wuild
+## X-License: MIT
+## Version: 0.1.0
+## OptionalDeps: Ace3, LibDataBroker-1.1, LibDBIcon-1.0, LibSharedMedia-3.0, SharedMedia
+## SavedVariables: ChatterSettings
+
+scripts\embeds.xml
+locales\enUS.lua
+scripts\locale.lua
+scripts\client.lua
+scripts\config.lua
+scripts\database.lua
+scripts\history.lua
+scripts\characters.lua
+scripts\battlenet.lua
+extensions\emoji\emotes.lua
+scripts\filters.lua
+scripts\format.lua
+scripts\composer.lua
+scripts\typing.lua
+scripts\theme.lua
+scripts\extensions.lua
+extensions\emoji\renderer.lua
+extensions\emoji\module.lua
+scripts\ui.lua
+scripts\info.lua
+scripts\sounds.lua
+scripts\media.lua
+scripts\actions.lua
+scripts\selection.lua
+scripts\window.lua
+extensions\notification\module.lua
+extensions\keywords\module.lua
+extensions\character-names\module.lua
+scripts\minimap.lua
+scripts\debug.lua
+scripts\screenshots.lua
+scripts\settings.lua
+scripts\main.lua

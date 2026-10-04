@@ -1,0 +1,2 @@
+LibDBIcon-1.0 minor 56, unmodified source from the installed Prat-3.0 bundle.
+Upstream: https://www.wowace.com/projects/libdbicon-1-0

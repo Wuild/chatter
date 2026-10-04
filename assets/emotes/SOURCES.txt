@@ -1,0 +1,14 @@
+Classic Pidgin smileys, selected for old-style text emoticons.
+Source: https://github.com/tieto/pidgin/tree/launchpad/pidgin/pixmaps/emotes/default/24
+Downloaded 2026-10-04 from the launchpad branch archive.
+Upstream theme credit: Hylke Bons (also credited for icons in AUTHORS).
+Upstream source SVG additionally credits Jakub Steiner and declares
+Creative Commons Attribution-ShareAlike 3.0:
+https://creativecommons.org/licenses/by-sa/3.0/
+The upstream project GPL version 2 COPYING and AUTHORS are included unchanged.
+Original PNGs, theme mapping and SVG artwork are retained in source/.
+
+Chatter changes: selects 22 icons, pads their original 24x24 RGBA pixels onto
+32x32 transparent canvases, exports uncompressed TGA, and maps 96 classic text
+smileys. No named emoji shortcuts or Unicode conversion are enabled.
+Source artwork and converted artwork retain their upstream licensing.
