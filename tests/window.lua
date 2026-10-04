@@ -43,6 +43,14 @@ do
     methods[method] = noop
 end
 
+function methods:SetFrameStrata(strata)
+    self.strata = strata
+end
+
+function methods:GetFrameStrata()
+    return self.strata or (self.parent and self.parent:GetFrameStrata()) or "MEDIUM"
+end
+
 function methods:SetAlpha(alpha)
     self.alpha = alpha
 end
@@ -152,6 +160,10 @@ end
 
 function methods:GetFont()
     return "font", 12
+end
+
+function methods:GetSpacing()
+    return 2
 end
 
 function methods:GetStringHeight()
@@ -380,7 +392,7 @@ SetPortraitTexture = function()
 end
 
 avatar:SetCharacter({ key = "class person", name = "Class Person", character = { classFile = "WARRIOR" } })
-assert(avatar.icon.texture:find("UI-CHARACTERCREATE-CLASSES", 1, true), "characters always use class icons")
+assert(avatar.icon.texture:find("assets\\classes\\warrior.tga", 1, true), "characters always use class icons")
 avatar:SetCharacter({ key = "unknown", name = "Unknown" })
 assert(avatar.icon.texture:find("INV_Misc_QuestionMark", 1, true), "unknown class uses fallback icon")
 avatar:SetCharacter({ key = "bnet:test", name = "Test", transport = "bnet" })
@@ -1242,34 +1254,34 @@ people.content:SetHeight(120)
 people.offset = 400
 Window:LayoutPeople()
 equal(people:GetVerticalScroll(), 0, "shortened list clears stale scroll offset")
-equal(Window.rows[1]:GetWidth(), 228, "non-scrolling cards fill sidebar")
+equal(Window.rows[1]:GetWidth(), 260, "non-scrolling cards fill sidebar")
 people.content:SetHeight(600)
 Window:LayoutPeople()
-equal(Window.rows[1]:GetWidth(), 221, "overflow reserves only thumb gutter")
+equal(Window.rows[1]:GetWidth(), 253, "overflow reserves only thumb gutter")
 people.content:SetHeight(120)
 Window:LayoutPeople()
-equal(Window.rows[1]:GetWidth(), 228, "cards reclaim gutter after list shrinks")
+equal(Window.rows[1]:GetWidth(), 260, "cards reclaim gutter after list shrinks")
 people.ClearAllPoints, people.SetPoint = originalClear, originalPoint
 print("Stable sidebar viewport, full-width rows and stale scroll recovery passed.")
 
 Window.frame:SetWidth(800)
 Window:Layout()
 flush()
-Window.people:SetWidth(228)
+Window.people:SetWidth(260)
 Window.people:RefreshContent()
 Window.frame:SetWidth(600)
 Window:Layout()
 flush()
 equal(Window.sidebar:IsShown(), false, "resize collapses sidebar")
 Window.people.scripts.OnSizeChanged(Window.people, 0, 0)
-equal(Window.people.content:GetWidth(), 228, "hidden zero-size event cannot collapse scroll child")
+equal(Window.people.content:GetWidth(), 260, "hidden zero-size event cannot collapse scroll child")
 -- Simulate an already collapsed/stale child from the previous implementation.
 Window.people.content:SetWidth(0)
 Window.rows[1]:Hide()
 Window.frame:SetWidth(800)
 Window:Layout()
 flush()
-equal(Window.people.content:GetWidth(), 228, "expanding sidebar restores scroll child width")
+equal(Window.people.content:GetWidth(), 260, "expanding sidebar restores scroll child width")
 equal(Window.rows[1]:IsShown(), true, "expanding sidebar rebuilds visible rows")
 Window.frame:SetWidth(600)
 Window:Layout()
@@ -1278,7 +1290,7 @@ Window.people.content:SetWidth(0)
 Window.rows[1]:Hide()
 Window:SetDrawer(true)
 flush()
-equal(Window.people.content:GetWidth(), 228, "opening compact drawer restores scroll child width")
+equal(Window.people.content:GetWidth(), 260, "opening compact drawer restores scroll child width")
 equal(Window.rows[1]:IsShown(), true, "opening compact drawer refreshes rows")
 print("Sidebar collapse/expand and compact drawer scroll-child restoration passed.")
 
@@ -1351,14 +1363,18 @@ end
 
 Window.focusEvents.scripts.OnEvent()
 equal(Window.focused, true, "child click activates owning window")
+equal(Window.frame:GetFrameStrata(), "DIALOG", "focused hub rises above ordinary UI")
 local focusPop = recreated(Window, manualChat.key)
 focusPop:Open(manualChat.key, nil, true)
 flush()
 equal(Window.focused, true, "background opening does not steal window focus")
+equal(focusPop.frame:GetFrameStrata(), "LOW", "background popout stays behind dialogs")
 hovered = focusPop.input
 Window.focusEvents.scripts.OnEvent()
 equal(focusPop.focused, true, "click activates separate window")
 equal(Window.focused, nil, "only one Chatter window focused")
+equal(Window.frame:GetFrameStrata(), "LOW", "previously focused hub drops into background")
+equal(focusPop.frame:GetFrameStrata(), "DIALOG", "clicked popout moves to foreground")
 equal(Window.focusBorder:IsShown(), true, "unfocused window keeps its border")
 registered = false
 for _, name in ipairs(UISpecialFrames) do
@@ -1378,6 +1394,7 @@ clockTime = 1020
 Window.focusEvents.scripts.OnEvent()
 Window:UpdateOpacity()
 equal(Window.focused, nil, "world click releases window focus")
+equal(Window.frame:GetFrameStrata(), "LOW", "world click lowers window immediately")
 equal(Window.frame.alpha, 0.9, "blur starts normal fade delay")
 clockTime = 1024
 Window:UpdateOpacity()
@@ -1594,7 +1611,8 @@ flush()
 equal(deliveryBubble.alpha, intermediate, "interrupted fade starts at visible opacity")
 deliveryBubble.scripts.OnUpdate(deliveryBubble, 0.25)
 equal(deliveryBubble.alpha, 0.4, "unconfirmed fade reaches target")
-equal(deliveryBubble.scripts.OnUpdate, nil, "completed delivery fade stops updating")
+equal(deliveryBubble.deliveryFade, nil, "completed delivery fade stops animating")
+assert(deliveryBubble.scripts.OnUpdate, "selection update handler remains installed")
 delivery.unconfirmed = nil
 reader:RefreshMessages()
 flush()
@@ -1607,7 +1625,7 @@ Chatter.db.global.animateWindows = false
 reader:RefreshMessages()
 flush()
 equal(deliveryBubble.alpha, 0.65, "disabling animations applies delivery opacity immediately")
-equal(deliveryBubble.scripts.OnUpdate, nil, "disabling animations cancels in-flight delivery fade")
+equal(deliveryBubble.deliveryFade, nil, "disabling animations cancels in-flight delivery fade")
 print("Delivery opacity fades, interruption, refresh stability and animation preference passed.")
 
 local typingKey = reader.active
@@ -1784,12 +1802,12 @@ flush()
 assert(reopenBubble.scripts.OnUpdate, "delivery animation running before hide")
 reopenBubble.scripts.OnUpdate(reopenBubble, 0.05)
 reader:HideImmediately()
-equal(reopenBubble.scripts.OnUpdate, nil, "hiding stops message animation")
+equal(reopenBubble.deliveryFade, nil, "hiding stops message animation")
 equal(reopenBubble.alpha, 1, "released messages reset opacity")
 equal(reopenBubble.messageID, nil, "released messages clear identity")
 reader:Open(demoConversation.key)
 flush()
-equal(reopenBubble.scripts.OnUpdate, nil, "reopening does not replay stale message animation")
+equal(reopenBubble.deliveryFade, nil, "reopening does not replay stale message animation")
 print("Opening keeps stable message scale and cancels stale delivery animations.")
 
 Chatter.db.global.animateWindows = false
@@ -1926,7 +1944,7 @@ local function walkHistory()
             equal(bubble:IsShown(), false, "free frames hidden")
             equal(bubble.messageID, nil, "free frames clear identity")
             equal(bubble.text:GetText(), "", "free frames clear message text")
-            equal(bubble.scripts.OnUpdate, nil, "free frames stop delivery animation")
+            equal(bubble.deliveryFade, nil, "free frames stop delivery animation")
         end
     end
 end
@@ -2418,3 +2436,325 @@ Chatter.db.char.conversations.routing = routing
 History.RemoveEmpty(Chatter.db.char)
 assert(Chatter.db.char.conversations.routing == routing, "empty routing record retains undocked state across cleanup")
 print("Undocked state survives reload, preserves geometry/visibility, clears on docking and respects combat.")
+
+-- Sidebar search filters names without changing the selected chat or drafts.
+Chatter.db.global.maxPeople = 100
+local searchWillow = History.Add(Chatter.db.char, Chatter.db.global, "Search Willow", "hello", false, 1, false)
+local searchRowan = History.Add(Chatter.db.char, Chatter.db.global, "Search Rowan", "hello", false, 2, false)
+local searchLiteral = History.Add(Chatter.db.char, Chatter.db.global, "Search [Mage]", "hello", false, 3, false)
+local searchWindow = recreated()
+searchWindow.detached = {}
+searchWindow:Open(searchWillow.key)
+flush()
+searchWindow.input:SetText("unfinished reply")
+
+local function query(text)
+    searchWindow.search:SetText(text)
+    searchWindow.search.scripts.OnTextChanged(searchWindow.search)
+end
+
+query("  rOwAn  ")
+equal(searchWindow.rows[1].key, searchRowan.key, "search trims whitespace and ignores case")
+equal(searchWindow.rows[2]:IsShown(), false, "nonmatching rows hidden")
+equal(searchWindow.active, searchWillow.key, "search preserves selected conversation")
+equal(searchWindow.input:GetText(), "unfinished reply", "search preserves draft")
+equal(searchWindow.people:GetVerticalScroll(), 0, "search resets list scroll")
+query("[Mage]")
+equal(searchWindow.rows[1].key, searchLiteral.key, "search treats pattern characters literally")
+query("no-such-character")
+equal(searchWindow.rows[1]:IsShown(), false, "no matches hides all rows")
+equal(searchWindow.searchEmpty:IsShown(), true, "empty search result has feedback")
+searchWindow.detached[searchRowan.key] = {}
+query("Rowan")
+equal(searchWindow.searchEmpty:IsShown(), true, "search excludes undocked conversations")
+query("")
+equal(searchWindow.searchEmpty:IsShown(), false, "clearing restores list")
+equal(searchWindow.searchPlaceholder:IsShown(), true, "empty input shows search hint")
+equal(searchWindow.searchClear:IsShown(), false, "empty input hides clear button")
+print("Conversation search, draft preservation, literal matching and undocked filtering passed.")
+
+CLASS_ICON_TCOORDS = CLASS_ICON_TCOORDS or {}
+CLASS_ICON_TCOORDS.MAGE = { 0, 0.25, 0, 0.25 }
+searchWillow.character = { classFile = "MAGE" }
+History.Invalidate()
+Chatter.db.global.showMessageClassIcons = true
+searchWindow:RefreshMessages()
+flush()
+assert(searchWindow.bubbles[1].classIcon:IsShown(), "known sender gets a class icon")
+Chatter.db.global.showMessageClassIcons = false
+searchWindow:RefreshMessages()
+flush()
+assert(not searchWindow.bubbles[1].classIcon:IsShown(), "message icon option hides pooled icons")
+Chatter.db.global.showMessageClassIcons = true
+searchWillow.character = nil
+History.Invalidate()
+searchWindow:RefreshMessages()
+flush()
+assert(not searchWindow.bubbles[1].classIcon:IsShown(), "unknown sender does not inherit a pooled class icon")
+print("Optional message class icons refresh and reset correctly on reused bubbles.")
+
+function methods:SetJustifyV(value)
+    self.justifyV = value
+end
+
+local groupedChat
+for index, stamp in ipairs({ 1000, 1010, 1020, 1030, 1700 }) do
+    groupedChat =
+        History.Add(Chatter.db.char, Chatter.db.global, "Grouped Sender", "Message " .. index, index > 2, stamp, false)
+end
+
+groupedChat.character = { classFile = "MAGE" }
+History.Invalidate()
+local groupedWindow = recreated()
+groupedWindow:Open(groupedChat.key)
+flush()
+local groupRows = {}
+for _, row in ipairs(groupedWindow.messageRows) do
+    if row.message then
+        groupRows[#groupRows + 1] = row
+    end
+end
+
+assert(not groupRows[1].grouped and groupRows[2].grouped, "consecutive sender shares one title")
+assert(not groupRows[3].grouped and groupRows[4].grouped, "sender change starts a new group")
+assert(not groupRows[5].grouped, "long pause starts a new title")
+for _, bubble in ipairs(groupedWindow.bubbles) do
+    equal(bubble.meta:IsShown(), not bubble.row.grouped, "only group starts display metadata")
+    equal(bubble.text.justifyV, "TOP", "tight glyph bounds keep native selection aligned")
+    equal(bubble.text:GetHeight(), bubble.textHeight, "text region fits the actual glyph height")
+    local topPadding = -bubble.text.lastPoint[3] - bubble.bodyTop
+    local bottomPadding = bubble:GetHeight() + bubble.text.lastPoint[3] - bubble.textHeight
+    equal(topPadding, bottomPadding, "glyph block is centered with equal padding")
+    if bubble.row.grouped then
+        assert(not bubble.classIcon:IsShown(), "group continuations omit icon")
+    end
+end
+
+local function menuAction(label)
+    groupedWindow:ConversationMenu(groupedWindow.frame, searchWillow.key)
+    for _, entry in ipairs(entries) do
+        if entry.label == label then
+            entry.action()
+            return
+        end
+    end
+
+    error("Missing menu action: " .. label)
+end
+
+menuAction("Pin conversation")
+assert(groupedWindow.rows[1].pin:IsShown(), "pinned conversation shows a pin on its card")
+assert(Chatter.db.char.conversations[searchWillow.key].pinned, "pin saved on conversation")
+equal(History.Sorted(History.DisplayData())[1].key, searchWillow.key, "pinned conversation sorts before newer chats")
+equal(groupedWindow.active, groupedChat.key, "pinning does not change active conversation")
+menuAction("Unpin conversation")
+for _, row in ipairs(groupedWindow.rows) do
+    if row.key == searchWillow.key then
+        assert(not row.pin:IsShown(), "unpinning removes the card pin")
+    end
+end
+
+assert(not Chatter.db.char.conversations[searchWillow.key].pinned, "unpin clears saved preference")
+assert(History.Sorted(History.DisplayData())[1].key ~= searchWillow.key, "unpin restores recency ordering")
+local crop = {
+    SetTexture = function() end,
+    SetTexCoord = function(self, ...)
+        self.coords = { ... }
+    end,
+}
+
+assert(addon.UI.SetClassIcon(crop, "MAGE"), "class atlas exists")
+assert(crop.coords[1] == 0.1 and crop.coords[2] == 0.9, "bundled icon uses transparent art without the original frame")
+print("Grouped message headers, centered text, cropped class icons and saved conversation pinning passed.")
+
+local shortChat = History.Add(Chatter.db.char, Chatter.db.global, "Long Header Name", "yes?", false, 2000, false)
+local shortWindow = recreated()
+shortWindow:Open(shortChat.key)
+flush()
+local shortBubble = shortWindow.bubbles[1]
+assert(shortBubble.bodyWidth < shortBubble:GetWidth(), "short bubble is narrower than its sender heading")
+equal(
+    shortBubble.bodyWidth,
+    shortBubble.text:GetStringWidth() + 22,
+    "short text gets padding without a minimum-width box"
+)
+assert(shortBubble.bodyLeft == 0, "incoming short bubble aligns left")
+History.Add(Chatter.db.char, Chatter.db.global, "Long Header Name", "ok", true, 2001, false)
+shortWindow:RefreshMessages()
+flush()
+local reply = shortWindow.bubbles[#shortWindow.bubbles]
+equal(reply.bodyLeft + reply.bodyWidth, reply:GetWidth(), "outgoing short bubble aligns right independently of heading")
+print("Short bubble widths follow text rather than sender heading width.")
+
+-- Exercise real selection hooks alongside message opacity and frame reuse.
+local dragIndex = 1
+
+function methods:FindCharacterIndexAtCoordinate()
+    return dragIndex, true
+end
+
+function methods:CalculateScreenAreaFromCharacterSpan()
+    return { { left = 0, bottom = 0, width = 24, height = 14 } }
+end
+
+GetCursorPosition = function()
+    return 0, 0
+end
+
+IsMouseButtonDown = function()
+    return true
+end
+
+Chatter.db.global.animateWindows = true
+local dragChat = History.Add(Chatter.db.char, Chatter.db.global, "Drag Test", "hello world", true, 2100, false)
+dragChat.messages[1].pending = true
+local dragWindow = recreated()
+dragWindow:Open(dragChat.key)
+flush()
+local dragBubble = dragWindow.bubbles[1]
+
+local function dragAndCheck()
+    dragIndex = 1
+    dragBubble.scripts.OnMouseDown(dragBubble, "LeftButton")
+    dragIndex = 6
+    dragBubble.scripts.OnUpdate(dragBubble, 0.3)
+    assert(
+        dragWindow.messageSelection and dragWindow.messageSelection.selected == "hello",
+        "selection updates before releasing mouse"
+    )
+    assert(dragBubble.selectionHighlights[1]:IsShown(), "drag highlight is visible")
+    addon.Selection.Clear(dragWindow)
+end
+
+dragAndCheck()
+dragChat.messages[1].pending = nil
+dragWindow:RefreshMessages()
+flush()
+dragAndCheck()
+assert(dragBubble.deliveryFade == nil, "delivery animation completes while selecting")
+dragWindow:ReleaseMessageFrames()
+dragWindow:UpdateVisibleMessages()
+dragBubble = dragWindow.bubbles[1]
+dragAndCheck()
+Chatter.db.global.animateWindows = false
+dragWindow:RefreshMessages()
+flush()
+dragAndCheck()
+print("Live drag selection survives delivery fades, disabled animations and pooled frame reuse.")
+
+-- Rich messages must retain their images while selecting without invoking the
+-- native FontString character APIs, including after pooled frame reuse.
+function methods:GetUnboundedStringWidth()
+    local text = self.text:gsub("|T.-|t", "xx"):gsub("|A.-|a", "xx")
+    return #text * 7
+end
+
+local originalFormatMessage = addon.Format.Message
+local selectionTexture = "|TInterface\\AddOns\\Chatter\\assets\\emotes\\happy.tga:16:16|t"
+addon.Format.Message = function(text, ...)
+    if text == "texture selection regression" then
+        return "hello " .. selectionTexture
+    end
+
+    return originalFormatMessage(text, ...)
+end
+
+local richChat = History.Add(
+    Chatter.db.char,
+    Chatter.db.global,
+    "Rich Selection",
+    "texture selection regression",
+    false,
+    2200,
+    false
+)
+dragWindow:Open(richChat.key)
+flush()
+
+local function checkRichSelection()
+    local richBubble = dragWindow.bubbles[1]
+    assert(richBubble.selectionLayout, "visible rich frame has measured selection layout")
+    local displayed = richBubble.text:GetText()
+    assert(displayed:find(selectionTexture, 1, true), "message still displays emoji")
+    richBubble.text.FindCharacterIndexAtCoordinate = function()
+        error("native hit test called on inline texture")
+    end
+
+    richBubble.text.CalculateScreenAreaFromCharacterSpan = function()
+        error("native span query called on inline texture")
+    end
+
+    richBubble.text.GetLeft = function()
+        return 0
+    end
+
+    richBubble.text.GetTop = function()
+        return 100
+    end
+
+    local cursorY = 99
+    GetCursorPosition = function()
+        return 0, cursorY
+    end
+
+    richBubble.scripts.OnMouseDown(richBubble, "LeftButton")
+    cursorY = -10000
+    richBubble.scripts.OnUpdate(richBubble, 0.3)
+    equal(dragWindow.messageSelection.selected, "hello :)", "rich selection copies emoji text")
+    equal(richBubble.text:GetText(), displayed, "selection never deparses displayed emoji")
+    richBubble.scripts.OnMouseUp(richBubble, "LeftButton")
+    equal(dragWindow.copyBridge:GetText(), "hello :)", "rich selection reaches clipboard")
+    addon.Selection.Clear(dragWindow)
+end
+
+checkRichSelection()
+dragWindow:ReleaseMessageFrames()
+dragWindow:UpdateVisibleMessages()
+checkRichSelection()
+addon.Format.Message = originalFormatMessage
+print("Visible emoji selection bypasses native character APIs before and after pooled frame reuse.")
+
+Window:Open(modeChat.key)
+flush()
+Window:ShowCopyText("https://example.com", "Copy link")
+Window:ToggleEmotes()
+equal(Window.url:GetFrameStrata(), "DIALOG", "copy dialog follows focused window")
+equal(Window.url.shade:GetFrameStrata(), "DIALOG", "copy backdrop follows focused window")
+equal(Window.emotePicker:GetFrameStrata(), "DIALOG", "picker follows focused window")
+Window:SetWindowFocus(false)
+equal(Window.url:GetFrameStrata(), "LOW", "copy dialog lowers with inactive window")
+equal(Window.url.shade:GetFrameStrata(), "LOW", "copy backdrop lowers with inactive window")
+equal(Window.emotePicker:GetFrameStrata(), "LOW", "picker lowers with inactive window")
+Window:SetWindowFocus(true)
+equal(Window.url:GetFrameStrata(), "DIALOG", "existing popup returns to foreground on activation")
+print("Dynamic focus strata follow hub, popouts, copy dialogs and emoji pickers.")
+
+local playerMenuModifiers = {}
+Menu = {
+    ModifyMenu = function(tag, callback)
+        playerMenuModifiers[tag] = callback
+    end,
+}
+
+UnitPopup_OpenMenu = function(which, context)
+    MenuUtil.CreateContextMenu(nil, function(_, root)
+        root:CreateButton("Native player action", noop)
+        playerMenuModifiers["MENU_UNIT_" .. which](nil, root, context)
+    end)
+end
+
+Window:ConversationMenu(Window.frame, modeChat.key)
+equal(entries[1].label, "Native player action", "native player menu is the default conversation menu")
+local menuLabels = {}
+for _, entry in ipairs(entries) do
+    if entry.label then
+        menuLabels[entry.label] = true
+    end
+end
+
+assert(menuLabels["Pin conversation"] or menuLabels["Unpin conversation"], "pin action extends native menu")
+assert(menuLabels["Delete conversation"] and menuLabels["Close window"], "conversation actions extend native menu")
+assert(not menuLabels["Invite to group"], "native menu does not duplicate fallback player actions")
+Window.headerAvatar.scripts.OnMouseUp(Window.headerAvatar, "RightButton")
+equal(entries[1].label, "Native player action", "header avatar opens the same extended player menu")
+print("Conversation cards and headers open native player menus with Chatter actions appended.")

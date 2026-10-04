@@ -122,6 +122,7 @@ CreateFrame = function(kind)
 end
 
 GameFontHighlight = {}
+UIParent = frame()
 local x, y, index, inside, down = 40, 80, 1, true, true
 GetCursorPosition = function()
     return x, y
@@ -162,6 +163,10 @@ equal(#bubble.selectionHighlights, 2, "wrapped span draws both rectangles")
 bubble.scripts.OnMouseUp(bubble, "LeftButton")
 equal(window.copyBridge:GetText(), "hello", "clipboard contains selection only")
 equal(window.copyBridge.alpha, 0, "clipboard has no visible text or caret")
+equal(window.copyBridge.point[2], UIParent, "clipboard anchored to the screen")
+equal(window.copyBridge.point[3], "BOTTOMLEFT", "clipboard sits outside the screen")
+equal(window.copyBridge.point[4], -100, "clipboard caret kept off-screen horizontally")
+equal(window.copyBridge.point[5], -100, "clipboard caret kept off-screen vertically")
 equal(window.copyBridge.mouse, false, "clipboard cannot intercept clicks")
 window.copyBridge:SetText("typing or paste")
 equal(window.copyBridge:GetText(), "hello", "clipboard remains selected text")
@@ -195,3 +200,136 @@ local smile = "|TInterface\\AddOns\\Chatter\\assets\\emotes\\happy.tga:18|t"
 equal(Selection.CopyText(smile, 1, #smile), ":)", "smiley selection copies a text face")
 equal(Selection.CopyText("a||b\nc", 1, 6), "a|b\nc", "pipes and line breaks survive")
 print("Read-only drag selection, wrapping, reverse selection, UTF-8, link labels and hidden clipboard passed.")
+
+index = 1
+Selection.Update(window, bubble, message, 80, 1, "position-a")
+bubble.scripts.OnMouseDown(bubble, "LeftButton")
+index = 6
+bubble.scripts.OnUpdate()
+assert(window.messageSelection, "selection exists before geometry change")
+Selection.Update(window, bubble, message, 80, 1, "position-b")
+assert(not window.messageSelection, "group and layout changes clear stale selection rectangles")
+
+local nativeHit = bubble.text.FindCharacterIndexAtCoordinate
+local nativeSpan = bubble.text.CalculateScreenAreaFromCharacterSpan
+
+local function unsafeNativeCall()
+    error("inline textures must never reach native selection APIs")
+end
+
+-- Deterministic font metrics: glyphs 5px, images 16px, lines 16px + 2px spacing.
+local function visible(text)
+    return text:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""):gsub("|H.-|h", ""):gsub("|h", "")
+end
+
+local function metrics(f)
+    function f:GetFont()
+        return "font", 12, ""
+    end
+
+    function f:GetSpacing()
+        return 2
+    end
+
+    function f:GetStringWidth()
+        local text, textures = visible(self.text):gsub("|T.-|t", "")
+        local atlases
+        text, atlases = text:gsub("|A.-|a", "")
+        local _, glyphs = text:gsub("[%z\1-\127\194-\244][\128-\191]*", "")
+        return glyphs * 5 + (textures + atlases) * 16
+    end
+
+    function f:GetStringHeight()
+        local _, lines = self.text:gsub("\n", "")
+        return 16 + lines * 18
+    end
+
+    function f:GetHeight()
+        return self:GetStringHeight()
+    end
+
+    function f:GetLeft()
+        return 0
+    end
+
+    function f:GetTop()
+        return 100
+    end
+
+    function f:SetFont() end
+
+    function f:SetSpacing() end
+
+    function f:SetWordWrap() end
+
+    function f:SetWidth() end
+
+    function f:SetHeight() end
+
+    return f
+end
+
+function bubble:CreateFontString()
+    return metrics(frame())
+end
+
+metrics(bubble.text)
+bubble.text.FindCharacterIndexAtCoordinate = unsafeNativeCall
+bubble.text.CalculateScreenAreaFromCharacterSpan = unsafeNativeCall
+for _, rendered in ipairs({ smile, "hello " .. smile .. " world", "hello |A:some-atlas:16:16|a world" }) do
+    bubble.text:SetText(rendered)
+    Selection.Prepare(bubble, rendered, 80)
+    Selection.Update(window, bubble, rendered, 80, 2)
+    x, y = 0, 190 -- scale 2: beginning of the first line
+    bubble.scripts.OnMouseDown(bubble, "LeftButton")
+    assert(window.messageSelection, "texture messages start selection")
+    x, y = 160, 0 -- below the last line
+    bubble.scripts.OnUpdate()
+    equal(window.messageSelection.selected, Selection.CopyText(rendered, 1, #rendered), "drag copies texture message")
+    assert(bubble.selectionHighlights[1].shown, "texture drag has visible highlight")
+    bubble.scripts.OnMouseUp(bubble, "LeftButton")
+    equal(window.copyBridge:GetText(), Selection.CopyText(rendered, 1, #rendered), "texture message clipboard")
+    Selection.Clear(window)
+end
+
+local wrapped = "hello " .. smile .. " world"
+Selection.Prepare(bubble, wrapped, 50)
+Selection.Update(window, bubble, wrapped, 50, 2)
+equal(#bubble.selectionLayout.lines, 2, "native-width wrapping keeps words together")
+equal(bubble.text:GetText(), "hello " .. smile .. "\nworld", "render and selection share line breaks")
+-- Select only the emoji, forward and backward, using its measured rectangle.
+for _, direction in ipairs({ 1, -1 }) do
+    x, y = (direction == 1 and 30 or 46) * 2, 190
+    bubble.scripts.OnMouseDown(bubble, "LeftButton")
+    x = (direction == 1 and 46 or 30) * 2
+    bubble.scripts.OnUpdate()
+    equal(window.messageSelection.selected, ":)", "emoji-only selection in both directions")
+    equal(bubble.selectionHighlights[1].width, 16, "highlight matches texture width")
+    Selection.Clear(window)
+end
+
+Selection.Prepare(bubble, wrapped, 30)
+equal(#bubble.selectionLayout.lines, 3, "resize recalculates texture layout")
+local utf = "é " .. smile .. " 漢"
+Selection.Prepare(bubble, utf, 100)
+Selection.Update(window, bubble, utf, 100, 4)
+x, y = 0, 190
+bubble.scripts.OnMouseDown(bubble, "LeftButton")
+x = 200
+bubble.scripts.OnUpdate()
+equal(window.messageSelection.selected, "é :) 漢", "UTF-8 and emoji copy together")
+Selection.Clear(window)
+
+bubble.text.FindCharacterIndexAtCoordinate = nativeHit
+bubble.text.CalculateScreenAreaFromCharacterSpan = nativeSpan
+bubble.text:SetText(message)
+Selection.Prepare(bubble, message, 80)
+equal(bubble.selectionLayout, nil, "pooled plain-text frame drops texture layout")
+Selection.Update(window, bubble, message, 80, 3)
+x, y, index = 40, 80, 1
+bubble.scripts.OnMouseDown(bubble, "LeftButton")
+index = 6
+bubble.scripts.OnUpdate()
+equal(window.messageSelection.selected, "hello", "reused frame still selects plain text")
+Selection.Clear(window)
+print("Texture selection, reverse emoji spans, UTF-8, wrapping, resizing and frame reuse passed.")

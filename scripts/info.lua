@@ -38,7 +38,6 @@ function Info.Show(window)
     if not window.info then
         local shade = CreateFrame("Button", nil, window.frame)
         shade:SetAllPoints()
-        shade:SetFrameStrata("DIALOG")
         shade:SetFrameLevel(window.frame:GetFrameLevel() + 50)
         UI.Background(shade, 0, 0, 0, 0.78)
         if shade.SetIgnoreParentAlpha then
@@ -48,7 +47,6 @@ function Info.Show(window)
         local box = CreateFrame("Frame", nil, shade)
         window.info = box
         box:SetPoint("CENTER")
-        box:SetFrameStrata("DIALOG")
         box:SetFrameLevel(shade:GetFrameLevel() + 1)
         box:EnableMouse(true)
         box.surface = UI.ModalSurface(box)

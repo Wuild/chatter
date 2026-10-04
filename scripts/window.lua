@@ -2,6 +2,7 @@ local _, addon = ...
 local L = addon.L
 local UI, History, Format = addon.UI, addon.History, addon.Format
 local Window = { rows = {}, bubbles = {}, drafts = {}, following = true, detached = {}, popouts = {} }
+local SIDEBAR_WIDTH = 260
 addon.Window = Window
 
 local function finite(value)
@@ -230,9 +231,14 @@ function Window:SetWindowFocus(focused)
 
         Window.focusedWindow = self
         self.focused = true
+        self.frame:SetFrameStrata("DIALOG")
         self.frame:Raise()
     else
         self.focused = nil
+        if self.frame then
+            self.frame:SetFrameStrata("LOW")
+        end
+
         if Window.focusedWindow == self then
             Window.focusedWindow = nil
         end
@@ -464,9 +470,9 @@ function Window:Layout()
 
     local width = self.frame:GetWidth()
     self.compact = not self.owner and width < 680
-    local left = not self.owner and not self.compact and 228 or 0
+    local left = not self.owner and not self.compact and SIDEBAR_WIDTH or 0
     local contentWidth = width - left
-    local composerHeight = math.max(32, (Chatter.db.global.chatFontSize or 14) + 12)
+    local composerHeight = math.max(48, (Chatter.db.global.chatFontSize or 14) + 24)
     self.input:SetHeight(composerHeight)
     if self.input.RefreshFormatting then
         self.input:RefreshFormatting()
@@ -475,7 +481,7 @@ function Window:Layout()
     self.footer:ClearAllPoints()
     self.footer:SetPoint("BOTTOMLEFT", math.max(1, left), 1)
     self.footer:SetPoint("BOTTOMRIGHT", -1, 1)
-    self.footer:SetHeight(composerHeight + 22)
+    self.footer:SetHeight(composerHeight + 1)
     self.drawerToggle:SetShown(self.compact)
     self.brandIcon:ClearAllPoints()
     self.brandIcon:SetPoint("LEFT", self.compact and 46 or 12, 0)
@@ -502,10 +508,10 @@ function Window:Layout()
     self.divider:SetPoint("TOPRIGHT", -1, -83)
     self.scroll:ClearAllPoints()
     self.scroll:SetPoint("TOPLEFT", left + 4, -88)
-    self.scroll:SetPoint("BOTTOMRIGHT", -12, composerHeight + 24)
+    self.scroll:SetPoint("BOTTOMRIGHT", -12, composerHeight + 8)
     self.input:ClearAllPoints()
-    self.input:SetPoint("BOTTOMLEFT", left + 10, 12)
-    self.input:SetWidth(contentWidth - 20)
+    self.input:SetPoint("BOTTOMLEFT", math.max(1, left), 1)
+    self.input:SetWidth(width - math.max(1, left) - 1)
     self.placeholder:SetWidth(contentWidth - 80)
     if self.url then
         self.url:SetWidth(math.min(420, width - 24))
@@ -1082,44 +1088,70 @@ function Window:LayoutPeople()
     for _, row in ipairs(self.rows) do
         row:SetWidth(width)
         local conversation = History.Get(row.key)
-        row.title:SetWidth(width - 50 - (conversation and conversation.unread > 0 and 26 or 0))
-        row.details:SetWidth(width - 50)
-        row.preview:SetWidth(width - 50)
+        row.title:SetWidth(
+            width
+                - 56
+                - (conversation and conversation.unread > 0 and 26 or 0)
+                - (conversation and conversation.pinned and 18 or 0)
+        )
+        row.details:SetWidth(width - 56)
+        row.preview:SetWidth(width - 56)
     end
 
     self.peopleLayout = nil
 end
 
 function Window:ConversationMenu(button, key)
-    MenuUtil.CreateContextMenu(button, function(_, menu)
-        local conversation = History.Get(key)
-        if not Chatter.db.global.separateWindows then
-            local move = menu:CreateButton(
-                self.owner and L["Dock in main window"] or L["Open in separate window"],
-                function()
-                    if self.owner then
-                        self:Dock()
-                    elseif conversation then
-                        self:Detach(conversation.key)
-                    end
-                end
-            )
-            move:SetEnabled(conversation ~= nil)
-        end
+    if addon.Actions:OpenPlayerMenu(key, function(menu)
+        self:AddConversationMenuEntries(menu, key)
+    end) then
+        return
+    end
 
-        if conversation then
+    MenuUtil.CreateContextMenu(button, function(_, menu)
+        self:AddConversationMenuEntries(menu, key, true)
+    end)
+end
+
+function Window:AddConversationMenuEntries(menu, key, includePlayerActions)
+    local conversation = History.Get(key)
+    if not Chatter.db.global.separateWindows then
+        local move = menu:CreateButton(
+            self.owner and L["Dock in main window"] or L["Open in separate window"],
+            function()
+                if self.owner then
+                    self:Dock()
+                elseif conversation then
+                    self:Detach(conversation.key)
+                end
+            end
+        )
+        move:SetEnabled(conversation ~= nil)
+    end
+
+    if conversation then
+        menu:CreateButton(conversation.pinned and L["Unpin conversation"] or L["Pin conversation"], function()
+            local current = History.EnsureCurrent(key)
+            current.pinned = not conversation.pinned or nil
+            History.Invalidate()
+            local hub = self.owner or self
+            hub:RefreshList()
+        end)
+
+        if includePlayerActions then
             menu:CreateDivider()
             addon.Actions:AddMenu(menu, History.EnsureCurrent(key))
-            menu:CreateDivider()
-            menu:CreateButton(L["Delete conversation"], function()
-                self:ConfirmAction("delete", conversation.key)
-            end)
         end
 
         menu:CreateDivider()
-        menu:CreateButton(L["Close window"], function()
-            self:Close()
+        menu:CreateButton(L["Delete conversation"], function()
+            self:ConfirmAction("delete", conversation.key)
         end)
+    end
+
+    menu:CreateDivider()
+    menu:CreateButton(L["Close window"], function()
+        self:Close()
     end)
 end
 
@@ -1148,7 +1180,7 @@ function Window:RefreshList()
 
     local sorted = {}
     local detached = (self.owner or self).detached or {}
-    for _, conversation in ipairs(History.Sorted(History.DisplayData())) do
+    for _, conversation in ipairs(History.Sorted(History.DisplayData(), self.conversationQuery)) do
         if not detached[conversation.key] then
             sorted[#sorted + 1] = conversation
         end
@@ -1160,7 +1192,7 @@ function Window:RefreshList()
         local row = self.rows[index]
         if not row then
             row = CreateFrame("Button", nil, self.people.content)
-            row:SetSize(228, 60)
+            row:SetSize(SIDEBAR_WIDTH, 60)
             row.background = row:CreateTexture(nil, "BACKGROUND", nil, -1)
             row.background:SetPoint("TOPLEFT")
             row.background:SetPoint("BOTTOMRIGHT", 0, 1)
@@ -1174,8 +1206,8 @@ function Window:RefreshList()
                 addon.Theme:Paint(row.selected, "selectedColor")
             end
 
-            row.avatar = UI.Avatar(row, 28)
-            row.avatar:SetPoint("TOPLEFT", 6, -9)
+            row.avatar = UI.Avatar(row, 34)
+            row.avatar:SetPoint("TOPLEFT", 6, -6)
             row.unreadIndicator = CreateFrame("Frame", nil, row.avatar)
             row.unreadIndicator:SetSize(12, 16)
             row.unreadIndicator:SetPoint("TOPRIGHT", 4, 4)
@@ -1206,16 +1238,20 @@ function Window:RefreshList()
             end)
 
             row.title = UI.Text(row, "", "GameFontNormal")
-            row.title:SetPoint("TOPLEFT", 42, -7)
+            row.title:SetPoint("TOPLEFT", 48, -7)
             row.title:SetWidth(134)
             row.title:SetWordWrap(false)
+            row.pin = row:CreateTexture(nil, "OVERLAY")
+            row.pin:SetTexture("Interface\\AddOns\\Chatter\\assets\\icons\\pin.tga")
+            row.pin:SetSize(14, 14)
+            row.pin:SetVertexColor(unpack(UI.colors.muted))
             row.preview = UI.Text(row, "", "GameFontHighlightSmall")
-            row.preview:SetPoint("TOPLEFT", 42, -39)
+            row.preview:SetPoint("TOPLEFT", 48, -39)
             row.preview:SetWidth(160)
             row.preview:SetTextColor(unpack(UI.colors.muted))
             row.preview:SetWordWrap(false)
             row.details = UI.Text(row, "", "GameFontHighlightSmall")
-            row.details:SetPoint("TOPLEFT", 42, -23)
+            row.details:SetPoint("TOPLEFT", 48, -23)
             row.details:SetWidth(160)
             row.details:SetWordWrap(false)
             row.badge = CreateFrame("Frame", nil, row)
@@ -1251,6 +1287,9 @@ function Window:RefreshList()
         row:SetHeight(rowHeight)
         row:SetPoint("TOPLEFT", 0, -(index - 1) * rowHeight)
         row.title:SetText(conversation.name)
+        row.pin:ClearAllPoints()
+        row.pin:SetPoint("TOPRIGHT", conversation.unread > 0 and -36 or -10, -8)
+        row.pin:SetShown(conversation.pinned == true)
         row.avatar:SetCharacter(conversation)
         local details = addon.Characters.Label(conversation)
         row.details:SetText(details)
@@ -1262,7 +1301,7 @@ function Window:RefreshList()
         end
 
         row.preview:ClearAllPoints()
-        row.preview:SetPoint("TOPLEFT", 42, details ~= "" and -39 or -26)
+        row.preview:SetPoint("TOPLEFT", 48, details ~= "" and -39 or -26)
         row.title:SetWidth(conversation.unread > 0 and 134 or 160)
         row.badge:SetShown(conversation.unread > 0)
         row.unreadIndicator:SetShown(conversation.unread > 0)
@@ -1291,6 +1330,10 @@ function Window:RefreshList()
     end
 
     self.people.content:SetHeight(math.max(1, #sorted * rowHeight))
+    if self.searchEmpty then
+        self.searchEmpty:SetShown(self.conversationQuery ~= nil and self.conversationQuery ~= "" and #sorted == 0)
+    end
+
     self:LayoutPeople()
 end
 
@@ -1298,7 +1341,6 @@ function Window:ShowCopyText(value, caption)
     if not self.url then
         local shade = CreateFrame("Button", nil, self.frame)
         shade:SetAllPoints()
-        shade:SetFrameStrata("DIALOG")
         shade:SetFrameLevel(self.frame:GetFrameLevel() + 60)
         UI.Background(shade, 0, 0, 0, 0.78)
         if shade.SetIgnoreParentAlpha then
@@ -1310,7 +1352,6 @@ function Window:ShowCopyText(value, caption)
         box.shade = shade
         box:SetSize(420, 190)
         box:SetPoint("CENTER")
-        box:SetFrameStrata("DIALOG")
         box:SetFrameLevel(shade:GetFrameLevel() + 1)
         box:SetClampedToScreen(true)
         box:EnableMouse(true)
@@ -1410,24 +1451,28 @@ end
 local function setMessageOpacity(bubble, message)
     local target = message.outgoing and (message.pending and 0.65 or message.unconfirmed and 0.4) or 1
     if bubble.messageID ~= message.id or Chatter.db.global.animateWindows == false then
-        -- A pooled bubble may now represent a different message; never carry
-        -- another message's delivery animation into it.
-        bubble:SetScript("OnUpdate", nil)
+        bubble.deliveryFade = nil
         bubble.deliveryAlpha, bubble.deliveryTarget = target, target
         bubble:SetAlpha(target)
     elseif bubble.deliveryTarget ~= target then
-        local from, elapsed = bubble.deliveryAlpha or target, 0
         bubble.deliveryTarget = target
-        bubble:SetScript("OnUpdate", function(owner, delta)
-            elapsed = elapsed + delta
-            local progress = math.min(1, elapsed / 0.25)
-            local eased = 1 - (1 - progress) ^ 3
-            owner.deliveryAlpha = from + (target - from) * eased
-            owner:SetAlpha(owner.deliveryAlpha)
-            if progress == 1 then
-                owner:SetScript("OnUpdate", nil)
-            end
-        end)
+        bubble.deliveryFade = { from = bubble.deliveryAlpha or target, elapsed = 0, target = target }
+    end
+end
+
+local function updateMessageOpacity(bubble, delta)
+    local fade = bubble.deliveryFade
+    if not fade then
+        return
+    end
+
+    fade.elapsed = fade.elapsed + delta
+    local progress = math.min(1, fade.elapsed / 0.25)
+    local eased = 1 - (1 - progress) ^ 3
+    bubble.deliveryAlpha = fade.from + (fade.target - fade.from) * eased
+    bubble:SetAlpha(bubble.deliveryAlpha)
+    if progress == 1 then
+        bubble.deliveryFade = nil
     end
 end
 
@@ -1468,6 +1513,10 @@ local function createMessageFrame(self)
     bubble.meta = UI.Text(bubble, "", "GameFontDisableSmall")
     bubble.meta:SetPoint("TOPLEFT", 10, -7)
     bubble.meta:SetTextColor(0.64, 0.73, 0.78)
+    bubble.classIcon = bubble:CreateTexture(nil, "ARTWORK")
+    bubble.classIcon:SetSize(28, 28)
+    bubble.classIcon:SetPoint("TOPLEFT", 10, -6)
+    bubble.classIcon:Hide()
     -- Use one native FontString per bubble. A ScrollingMessageFrame
     -- crops its internal line boxes, even when its outer frame is tall.
     bubble.text = UI.Text(bubble, "", "GameFontHighlight")
@@ -1508,6 +1557,8 @@ local function createMessageFrame(self)
         end
     end)
 
+    -- Keep this update script installed: selection hooks share it with delivery fades.
+    bubble:SetScript("OnUpdate", updateMessageOpacity)
     if addon.Selection then
         addon.Selection.Attach(self, bubble)
     end
@@ -1537,7 +1588,7 @@ local function createDateFrame(self)
     return header
 end
 
-local function measureMessage(bubble, message, conversation, maxWidth)
+local function measureMessage(bubble, message, conversation, maxWidth, grouped)
     local _, fontSize = bubble.text:GetFont()
     if addon.Media then
         fontSize = addon.Media:Apply(bubble.text)
@@ -1550,21 +1601,79 @@ local function measureMessage(bubble, message, conversation, maxWidth)
             and conversation.key
         or nil
     local rendered = Format.Message(message.text, true, fontSize, bubble.inviteKey)
+    local classFile = conversation.character and conversation.character.classFile
+    if message.outgoing then
+        classFile = nil
+        local currentCharacter = Chatter.db.keys and Chatter.db.keys.char or "current"
+        if not message.sourceCharacter or message.sourceCharacter == currentCharacter then
+            if UnitClass then
+                local _, playerClass = UnitClass("player")
+                classFile = playerClass
+            end
+        end
+    end
+
+    local coords = classFile and CLASS_ICON_TCOORDS and CLASS_ICON_TCOORDS[classFile]
+    local iconsEnabled = Chatter.db.global.showMessageClassIcons ~= false
+    local showClass = iconsEnabled and not message.status and coords ~= nil
+    local showBattleNet = iconsEnabled
+        and not message.status
+        and not message.outgoing
+        and conversation.transport == "bnet"
+    local right = message.outgoing and Chatter.db.global.outgoingOnRight ~= false
+    if bubble.classIcon then
+        bubble.classIcon:SetShown(not grouped and (showClass or showBattleNet))
+        bubble.classIcon:ClearAllPoints()
+        bubble.classIcon:SetPoint(
+            right and "TOPLEFT" or "TOPRIGHT",
+            bubble,
+            right and "TOPRIGHT" or "TOPLEFT",
+            right and 6 or -6,
+            -24
+        )
+        if showBattleNet then
+            bubble.classIcon:SetTexture("Interface\\FriendsFrame\\Battlenet-Battleneticon")
+            bubble.classIcon:SetTexCoord(0.125, 0.875, 0.125, 0.875)
+        elseif showClass then
+            UI.SetClassIcon(bubble.classIcon, classFile)
+        end
+    end
+
+    bubble.meta:ClearAllPoints()
+    bubble.meta:SetPoint(right and "TOPRIGHT" or "TOPLEFT", right and -10 or 10, -7)
+    bubble.meta:SetShown(not grouped)
     bubble.meta:SetText(
         (
             message.status and L["Auto-reply"]
             or (message.outgoing and (message.sourceCharacter or L["You"]) or conversation.name)
         ) .. (Chatter.db.global.timestamps and ("  ·  " .. date(L["%H:%M"], message.time)) or "")
     )
-    local textTop = math.max(22, math.ceil(bubble.meta:GetStringHeight()) + 12)
+    local textTop = grouped and 8 or math.max(30, math.ceil(bubble.meta:GetStringHeight()) + 20)
+    bubble.bodyTop = textTop - 7
+
     bubble.text:ClearAllPoints()
     bubble.text:SetPoint("TOPLEFT", 10, -textTop)
-    bubble.text:SetHeight(0) -- automatic text height: no glyph clipping box
+    bubble.text:SetJustifyV("TOP")
+    bubble.text:SetHeight(0) -- measure the actual glyph block, without vertical slack
     bubble.text:SetWidth(maxWidth - 20)
     bubble.text:SetText(rendered)
-    local width = math.min(maxWidth, math.max(90, bubble.text:GetStringWidth() + 22, bubble.meta:GetStringWidth() + 22))
-    bubble.text:SetWidth(width - 20)
+    local naturalWidth = bubble.text.GetUnboundedStringWidth and bubble.text:GetUnboundedStringWidth()
+        or bubble.text:GetStringWidth()
+    local bodyWidth = math.min(maxWidth, math.max(32, math.ceil(naturalWidth) + 22))
+    local width = math.min(maxWidth, math.max(bodyWidth, grouped and 0 or bubble.meta:GetStringWidth() + 20))
+    bubble.bodyWidth = bodyWidth
+    bubble.bodyLeft = right and (width - bodyWidth) or 0
+    if bubble.background then
+        bubble.background:SetInsets(bubble.bodyTop, bubble.bodyLeft, right and 0 or (width - bodyWidth))
+    end
+
+    bubble.text:SetWidth(bodyWidth - 20)
+    if addon.Selection then
+        addon.Selection.Prepare(bubble, rendered, bodyWidth - 20)
+    end
+
     local height = math.ceil(math.max(fontSize or 12, bubble.text:GetStringHeight()))
+    bubble.textHeight = height
     return width, height + textTop + 8, rendered
 end
 
@@ -1578,13 +1687,21 @@ local function releaseMessage(self, bubble)
     end
 
     bubble:Hide()
-    bubble:SetScript("OnUpdate", nil)
+    bubble.deliveryFade = nil
     bubble:ClearAllPoints()
     bubble.text:SetText("")
     bubble.meta:SetText("")
+    bubble.classIcon:Hide()
+    bubble.classIcon:SetTexture(nil)
+    bubble.classIcon:SetTexCoord(0, 1, 0, 1)
     bubble.messageID, bubble.inviteKey, bubble.y, bubble.row = nil, nil, nil, nil
     bubble.deliveryAlpha, bubble.deliveryTarget = nil, nil
     bubble.selectionRendered, bubble.selectionWidth = nil, nil
+    bubble.selectionLayout = nil
+    if bubble.selectionMeasure then
+        bubble.selectionMeasure:SetText("")
+    end
+
     bubble.selectionDragging, bubble.selectionClickSuppressed = nil, nil
     bubble:SetAlpha(1)
     self.messagePool[#self.messagePool + 1] = bubble
@@ -1668,12 +1785,19 @@ function Window:UpdateVisibleMessages()
             local bubble = widget or table.remove(self.messagePool) or createMessageFrame(self)
             if bubble.row ~= row then
                 local message = row.message
-                local width, _, rendered = measureMessage(bubble, message, conversation, self.messageMaxWidth)
+                local width, _, rendered =
+                    measureMessage(bubble, message, conversation, self.messageMaxWidth, row.grouped)
+                bubble:SetSize(width, row.height)
+                bubble.text:ClearAllPoints()
+                local textOffset = bubble.bodyTop + (row.height - bubble.bodyTop - bubble.textHeight) / 2
+                bubble.text:SetPoint("TOPLEFT", bubble.bodyLeft + 10, -textOffset)
+                bubble.text:SetHeight(bubble.textHeight)
+                bubble.text:SetJustifyV("TOP")
                 if addon.Selection then
-                    addon.Selection.Update(self, bubble, rendered, width, message.id)
+                    local geometry = table.concat({ row.y, bubble.bodyLeft, textOffset, bubble.textHeight }, ":")
+                    addon.Selection.Update(self, bubble, rendered, bubble.bodyWidth, message.id, geometry)
                 end
 
-                bubble:SetSize(width, row.height)
                 setMessageOpacity(bubble, message)
                 bubble.background:SetColorTexture(
                     message.outgoing and 0.10 or 0.14,
@@ -1691,7 +1815,7 @@ function Window:UpdateVisibleMessages()
                     right and "TOPRIGHT" or "TOPLEFT",
                     scroll.content,
                     right and "TOPRIGHT" or "TOPLEFT",
-                    right and -8 or 8,
+                    right and -(8 + (self.messageIconGutter or 0)) or (8 + (self.messageIconGutter or 0)),
                     -row.y
                 )
                 bubble.messageID, bubble.y, bubble.row = message.id, row.y, row
@@ -1765,7 +1889,8 @@ function Window:RefreshMessages(forceBottom)
     local measure = self.messageMeasure
     local rows, previousDay = {}, nil
     local y, anchorY = 10, nil
-    local maxWidth = math.max(180, scroll:GetWidth() - 16)
+    self.messageIconGutter = Chatter.db.global.showMessageClassIcons ~= false and 34 or 0
+    local maxWidth = math.max(146, scroll:GetWidth() - 16 - self.messageIconGutter)
     self.messageMaxWidth = maxWidth
     for messageIndex = first, #messages do
         local message = messages[messageIndex]
@@ -1782,8 +1907,17 @@ function Window:RefreshMessages(forceBottom)
             y, previousDay = y + height, day
         end
 
-        local _, height = measureMessage(measure, message, conversation, maxWidth)
-        rows[#rows + 1] = { key = message.id, message = message, y = y, height = height }
+        local previous = messageIndex > first and messages[messageIndex - 1]
+        local grouped = previous
+            and not message.status
+            and not previous.status
+            and message.outgoing == previous.outgoing
+            and message.sourceCharacter == previous.sourceCharacter
+            and day == date("%Y-%m-%d", previous.time)
+            and message.time >= previous.time
+            and message.time - previous.time <= 300
+        local _, height = measureMessage(measure, message, conversation, maxWidth, grouped)
+        rows[#rows + 1] = { key = message.id, message = message, y = y, height = height, grouped = grouped }
         if message.id == anchor then
             anchorY = y
         end
@@ -1919,7 +2053,7 @@ function Window:Create()
     Window.frameSequence = (Window.frameSequence or 0) + 1
     local frameName = self.owner and ("ChatterConversation" .. Window.frameSequence) or "ChatterWindow"
     local frame = CreateFrame("Frame", frameName, UIParent)
-    local left = self.owner and 0 or 228
+    local left = self.owner and 0 or SIDEBAR_WIDTH
     local width, height = 800, 510
     if self.owner then
         width, height = self:DefaultSeparateSize()
@@ -1937,7 +2071,7 @@ function Window:Create()
         self.owner and -(Window.frameSequence % 5) * 24 or 0
     )
     frame:SetScale(math.min(1, (UIParent:GetWidth() - 40) / width, (UIParent:GetHeight() - 40) / height))
-    frame:SetFrameStrata("HIGH")
+    frame:SetFrameStrata("LOW")
     frame:SetClampedToScreen(true)
     frame:SetMovable(true)
     frame:EnableMouse(true)
@@ -2087,7 +2221,7 @@ function Window:Create()
     self.sidebar = sidebar
     sidebar:SetPoint("TOPLEFT", 0, -39)
     sidebar:SetPoint("BOTTOMLEFT", 0, 0)
-    sidebar:SetWidth(228)
+    sidebar:SetWidth(SIDEBAR_WIDTH)
     local sidebarSurface = UI.Background(sidebar, 0.10, 0.115, 0.13)
     if addon.Theme then
         addon.Theme:Paint(sidebarSurface, "sidebarColor")
@@ -2099,8 +2233,70 @@ function Window:Create()
     sidebarDivider:SetPoint("TOPLEFT", sidebar, "TOPRIGHT", 0, 0)
     sidebarDivider:SetPoint("BOTTOMLEFT", sidebar, "BOTTOMRIGHT", 0, 1)
     sidebarDivider:SetWidth(1)
+    self.search = UI.Input(sidebar, SIDEBAR_WIDTH, true, "sidebarColor")
+    self.search:SetHeight(38)
+    self.search:SetPoint("TOPLEFT", 0, 0)
+    self.search:SetPoint("TOPRIGHT", 0, 0)
+    self.search:SetTextInsets(32, 30, 0, 0)
+    self.search:SetMaxBytes(100)
+    local searchIcon = self.search:CreateTexture(nil, "ARTWORK")
+    searchIcon:SetTexture("Interface\\AddOns\\Chatter\\assets\\icons\\search.tga")
+    searchIcon:SetSize(14, 14)
+    searchIcon:SetPoint("LEFT", 10, 0)
+    searchIcon:SetVertexColor(unpack(UI.colors.muted))
+    local searchDivider = self.search:CreateTexture(nil, "OVERLAY")
+    searchDivider:SetPoint("BOTTOMLEFT")
+    searchDivider:SetPoint("BOTTOMRIGHT")
+    searchDivider:SetHeight(1)
+    searchDivider:SetColorTexture(0.20, 0.24, 0.27, 1)
+    if addon.Theme then
+        addon.Theme:Paint(searchDivider, "buttonColor")
+    end
+
+    self.searchPlaceholder = UI.Text(self.search, L["Search characters..."], "GameFontHighlightSmall")
+    self.searchPlaceholder:SetPoint("LEFT", 32, 0)
+    self.searchPlaceholder:SetTextColor(unpack(UI.colors.muted))
+    self.searchClear = CreateFrame("Button", nil, self.search)
+    self.searchClear:SetSize(28, 28)
+    self.searchClear:SetScript("OnClick", function()
+        self.search:SetText("")
+        self.search:SetFocus()
+    end)
+
+    local clearIcon = self.searchClear:CreateTexture(nil, "OVERLAY")
+    clearIcon:SetTexture("Interface\\AddOns\\Chatter\\assets\\icons\\close.tga")
+    clearIcon:SetSize(14, 14)
+    clearIcon:SetPoint("CENTER")
+    clearIcon:SetVertexColor(unpack(UI.colors.muted))
+    local clearHover = UI.Background(self.searchClear, 0.15, 0.21, 0.25)
+    if addon.Theme then
+        addon.Theme:Paint(clearHover, "buttonColor", true)
+    end
+
+    clearHover:Hide()
+    self.searchClear:SetScript("OnEnter", function()
+        clearHover:Show()
+        clearIcon:SetVertexColor(0.90, 0.94, 0.96, 1)
+    end)
+
+    self.searchClear:SetScript("OnLeave", function()
+        clearHover:Hide()
+        clearIcon:SetVertexColor(unpack(UI.colors.muted))
+    end)
+
+    self.searchClear:SetScript("OnHide", function()
+        clearHover:Hide()
+        clearIcon:SetVertexColor(unpack(UI.colors.muted))
+    end)
+
+    self.searchClear:SetPoint("RIGHT", -3, 0)
+    self.searchClear:Hide()
+    self.searchEmpty = UI.Text(sidebar, L["No matching conversations"], "GameFontHighlightSmall")
+    self.searchEmpty:SetPoint("TOP", 0, -50)
+    self.searchEmpty:SetTextColor(unpack(UI.colors.muted))
+    self.searchEmpty:Hide()
     self.people = UI.Scroll(sidebar)
-    self.people:SetPoint("TOPLEFT", 0, 0)
+    self.people:SetPoint("TOPLEFT", 0, -38)
     self.people:SetPoint("BOTTOMRIGHT", 0, 0)
     self.people.ScrollBar:ClearAllPoints()
     self.people.ScrollBar:SetPoint("TOPRIGHT", self.people, "TOPRIGHT", 0, 0)
@@ -2118,6 +2314,28 @@ function Window:Create()
     end)
 
     self.people.ScrollBar:SetAlpha(0.4)
+    self.search:SetScript("OnTextChanged", function(input)
+        local text = input:GetText()
+        self.conversationQuery = text:match("^%s*(.-)%s*$")
+        self.searchPlaceholder:SetShown(text == "")
+        self.searchClear:SetShown(text ~= "")
+        self.people:SetVerticalScroll(0)
+        self:RefreshList()
+    end)
+
+    self.search:HookScript("OnEditFocusGained", function()
+        self:SetWindowFocus(true)
+    end)
+
+    self.search:SetScript("OnEnterPressed", function(input)
+        input:ClearFocus()
+    end)
+
+    self.search:SetScript("OnEscapePressed", function(input)
+        input:SetText("")
+        input:ClearFocus()
+    end)
+
     if self.owner then
         sidebar:Hide()
     end
@@ -2138,6 +2356,22 @@ function Window:Create()
     self.header:SetPoint("TOPLEFT", left + 46, -46)
     self.header:SetWidth(width - left - 230)
     self.header:SetWordWrap(false)
+
+    local function openPlayerMenu()
+        self:ConversationMenu(self.headerAvatar, self.active)
+    end
+
+    self.headerAvatar:EnableMouse(true)
+    self.headerAvatar:SetScript("OnMouseUp", function(_, button)
+        if button == "RightButton" or button == "LeftButton" then
+            openPlayerMenu()
+        end
+    end)
+
+    self.headerMenu = CreateFrame("Button", nil, frame)
+    self.headerMenu:SetAllPoints(self.header)
+    self.headerMenu:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    self.headerMenu:SetScript("OnClick", openPlayerMenu)
     self.location = UI.Text(frame, "", "GameFontHighlightSmall")
     self.location:SetPoint("TOPRIGHT", -48, -47)
     self.location:SetWidth(130)
@@ -2224,22 +2458,31 @@ function Window:Create()
         addon.Theme:Paint(self.footerDivider, "buttonColor")
     end
 
-    self.input = UI.Input(frame, width - left - 20)
+    self.input = UI.Input(frame, width - left - 1, true)
     if addon.Media then
         addon.Media:Apply(self.input)
     end
 
-    self.input:SetHeight(32)
-    self.input:SetPoint("BOTTOMLEFT", left + 10, 12)
+    self.input:SetHeight(48)
+    local inputDivider = self.input:CreateTexture(nil, "OVERLAY")
+    inputDivider:SetPoint("TOPLEFT")
+    inputDivider:SetPoint("TOPRIGHT")
+    inputDivider:SetHeight(1)
+    inputDivider:SetColorTexture(0.20, 0.24, 0.27, 1)
+    if addon.Theme then
+        addon.Theme:Paint(inputDivider, "buttonColor")
+    end
+
+    self.input:SetPoint("BOTTOMLEFT", math.max(1, left), 1)
     self.input:SetMaxBytes(255)
-    self.input:SetTextInsets(14, 38, 0, 0)
+    self.input:SetTextInsets(14, 48, 0, 0)
     self.emoteButton = UI.EmoteButton(self.input, "happy", L["Smileys"], 26, function()
         self:ToggleEmotes()
     end)
 
-    self.emoteButton:SetPoint("RIGHT", -4, 0)
+    self.emoteButton:SetPoint("RIGHT", -14, 0)
     self.emoteButton:SetShown(Chatter.db.global.smileys == true)
-    self.input:SetTextInsets(14, Chatter.db.global.smileys and 38 or 14, 0, 0)
+    self.input:SetTextInsets(14, Chatter.db.global.smileys and 48 or 14, 0, 0)
     self.placeholder = UI.Text(self.input, L["Message..."], "GameFontHighlightSmall")
     self.placeholder:SetPoint("LEFT", 14, 0)
     self.placeholder:SetWidth(width - left - 120)
@@ -2326,6 +2569,7 @@ function Window:Create()
     self.unreadCount = UI.Text(self.unreadBadge, "", "GameFontHighlightSmall")
     self.unreadCount:SetPoint("CENTER")
     self.resize = UI.IconButton(frame, "resize", L["Resize window"], 12, function() end)
+    self.resize.surface:Hide()
     self.resize:SetPoint("BOTTOMRIGHT", -1, 1)
     self.resize:SetFrameLevel(sidebar:GetFrameLevel() + 5)
     self.resize:SetScript("OnMouseDown", function(_, button)

@@ -16,6 +16,10 @@ function History.Sorted(data, query)
     end
 
     table.sort(result, function(a, b)
+        if (a.pinned == true) ~= (b.pinned == true) then
+            return a.pinned == true
+        end
+
         if a.updated == b.updated then
             return a.key < b.key
         end
@@ -30,7 +34,11 @@ end
 function History.RemoveEmpty(data)
     History.Invalidate()
     for key, conversation in pairs(data.conversations) do
-        if not conversation.undocked and (not conversation.messages or next(conversation.messages) == nil) then
+        if
+            not conversation.undocked
+            and not conversation.pinned
+            and (not conversation.messages or next(conversation.messages) == nil)
+        then
             data.conversations[key] = nil
         end
     end
@@ -190,6 +198,8 @@ function History.DisplayData()
                     end
 
                     merged.character = copyCharacter(conversation.character)
+                    local current = Chatter.db.char.conversations[key]
+                    merged.pinned = current and current.pinned == true or false
                     merged.messages, merged.unread, merged.updated = {}, 0, 0
                     view.conversations[key] = merged
                 end

@@ -76,6 +76,19 @@ function UI.Round(parent, radius, r, g, b, a)
 
     local shape = {}
 
+    function shape:SetInsets(top, left, right)
+        parts[1]:SetPoint("TOPLEFT", left, -top)
+        parts[2]:SetPoint("TOPRIGHT", -right, -top)
+        parts[3]:SetPoint("BOTTOMLEFT", left, 0)
+        parts[4]:SetPoint("BOTTOMRIGHT", -right, 0)
+        center:SetPoint("TOPLEFT", left + radius, -top)
+        center:SetPoint("BOTTOMRIGHT", -right - radius, 0)
+        parts[6]:SetPoint("TOPLEFT", left, -radius - top)
+        parts[6]:SetPoint("BOTTOMLEFT", left, radius)
+        parts[7]:SetPoint("TOPRIGHT", -right, -radius - top)
+        parts[7]:SetPoint("BOTTOMRIGHT", -right, radius)
+    end
+
     function shape:SetColorTexture(red, green, blue, alpha)
         for index, texture in ipairs(parts) do
             if index <= 4 then
@@ -167,20 +180,26 @@ function UI.Button(parent, text, width, action, accent)
     return button
 end
 
-function UI.Input(parent, width)
+function UI.Input(parent, width, flat, colorKey)
+    local themeKey = colorKey or "inputColor"
     local input = CreateFrame("EditBox", nil, parent)
     input:SetSize(width, 40)
     input:SetFontObject(GameFontHighlight)
     input:SetTextInsets(14, 14, 0, 0)
-    input.surface = UI.Round(input, 4, 0.13, 0.16, 0.18)
+    if flat then
+        input.surface = UI.Background(input, 0.13, 0.16, 0.18)
+    else
+        input.surface = UI.Round(input, 4, 0.13, 0.16, 0.18)
+    end
+
     if addon.Theme then
-        addon.Theme:Paint(input.surface, "inputColor")
+        addon.Theme:Paint(input.surface, themeKey)
     end
 
     input:SetAutoFocus(false)
     input:SetScript("OnEditFocusGained", function()
         if addon.Theme then
-            addon.Theme:Paint(input.surface, "inputColor", true)
+            addon.Theme:Paint(input.surface, themeKey, true)
         else
             input.surface:SetColorTexture(0.17, 0.22, 0.25)
         end
@@ -188,7 +207,7 @@ function UI.Input(parent, width)
 
     input:SetScript("OnEditFocusLost", function()
         if addon.Theme then
-            addon.Theme:Paint(input.surface, "inputColor")
+            addon.Theme:Paint(input.surface, themeKey)
         else
             input.surface:SetColorTexture(0.13, 0.16, 0.18)
         end
@@ -271,13 +290,48 @@ function UI.EmoteButton(parent, asset, tooltip, size, action)
     return button
 end
 
+local classAssets = {
+    WARRIOR = "warrior",
+    MAGE = "mage",
+    ROGUE = "rogue",
+    DRUID = "druid",
+    HUNTER = "hunter",
+    SHAMAN = "shaman",
+    PRIEST = "priest",
+    WARLOCK = "warlock",
+    PALADIN = "paladin",
+    DEATHKNIGHT = "deathknight",
+    MONK = "monk",
+    DEMONHUNTER = "demonhunter",
+}
+
+function UI.SetClassIcon(texture, classFile)
+    if classAssets[classFile] then
+        texture:SetTexture("Interface\\AddOns\\Chatter\\assets\\classes\\" .. classAssets[classFile] .. ".tga")
+        texture:SetTexCoord(0.1, 0.9, 0.1, 0.9)
+        return true
+    end
+
+    local coords = classFile and CLASS_ICON_TCOORDS and CLASS_ICON_TCOORDS[classFile]
+    if not coords then
+        return false
+    end
+
+    -- Crop within the class's atlas tile, never into a neighbouring class.
+    local xInset = (coords[2] - coords[1]) * 0.08
+    local yInset = (coords[4] - coords[3]) * 0.08
+    texture:SetTexture("Interface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES")
+    texture:SetTexCoord(coords[1] + xInset, coords[2] - xInset, coords[3] + yInset, coords[4] - yInset)
+    return true
+end
+
 function UI.Avatar(parent, size)
     local avatar = CreateFrame("Frame", nil, parent)
     avatar:SetSize(size, size)
     avatar.surface = UI.Round(avatar, 3, 0.25, 0.29, 0.48)
     avatar.icon = avatar:CreateTexture(nil, "ARTWORK")
-    avatar.icon:SetPoint("TOPLEFT", 2, -2)
-    avatar.icon:SetPoint("BOTTOMRIGHT", -2, 2)
+    avatar.icon:SetPoint("TOPLEFT", 1, -1)
+    avatar.icon:SetPoint("BOTTOMRIGHT", -1, 1)
     avatar.icon:Hide()
     avatar.label = UI.Text(avatar, "", "GameFontHighlight")
     avatar.label:SetPoint("CENTER")
@@ -307,6 +361,7 @@ function UI.Avatar(parent, size)
     end
 
     function avatar:SetCharacter(conversation)
+        self.surface:SetShown(true)
         local color = addon.Characters.Color(conversation)
         self.surface:SetColorTexture(
             color and color.r * 0.6 or 0.22,
@@ -322,10 +377,8 @@ function UI.Avatar(parent, size)
         end
 
         local info = conversation and conversation.character
-        local coords = info and info.classFile and CLASS_ICON_TCOORDS and CLASS_ICON_TCOORDS[info.classFile]
-        if coords then
-            self.icon:SetTexture("Interface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES")
-            self.icon:SetTexCoord(unpack(coords))
+        if UI.SetClassIcon(self.icon, info and info.classFile) then
+            self.surface:Hide()
         else
             self.icon:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
             self.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)

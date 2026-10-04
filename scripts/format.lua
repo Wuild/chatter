@@ -26,6 +26,31 @@ local function inputLink(raw, display)
     return "|cff68bfff|Hchatterinput:" .. encode(raw) .. "|h" .. display .. "|h|r"
 end
 
+-- Native chat markers are independent of the optional emoji extension.
+local raidMarkers = { star = 1, circle = 2, diamond = 3, triangle = 4, moon = 5, square = 6, cross = 7, skull = 8 }
+
+local function renderRaidMarkers(text, fontSize, inputMode)
+    return (
+        text:gsub("{([^{}]+)}", function(tag)
+            local key = (strlower or string.lower)(tag)
+            local index = ICON_TAG_LIST and ICON_TAG_LIST[key] or raidMarkers[key] or tonumber(key:match("^rt([1-8])$"))
+            if not index or index < 1 or index > 8 then
+                return
+            end
+
+            local size = math.floor(fontSize or 12) + 2
+            local texture = "|TInterface\\TargetingFrame\\UI-RaidTargetingIcon_"
+                .. index
+                .. ":"
+                .. size
+                .. ":"
+                .. size
+                .. "|t"
+            return inputMode and inputLink("{" .. tag .. "}", texture) or texture
+        end)
+    )
+end
+
 local function plain(text, enabled, fontSize, inviteKey, inputMode)
     return (
         text:gsub("%S+", function(token)
@@ -100,7 +125,9 @@ function Format.Message(text, enabled, fontSize, inviteKey, inputMode)
         end)
     end
 
-    return rendered
+    return mapPlain(rendered, function(span)
+        return renderRaidMarkers(span, fontSize, inputMode)
+    end)
 end
 
 -- Visit plain tokens only; actions must never trigger from link payloads/labels,

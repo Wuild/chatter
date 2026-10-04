@@ -130,6 +130,12 @@ function Settings:Options()
     end
 
     local messages = {
+        showMessageClassIcons = option(
+            "toggle",
+            L["Show class icons in messages"],
+            2.5,
+            L["Show a small class icon beside the sender name. Battle.net messages use the Battle.net icon."]
+        ),
         timestamps = option("toggle", L["Message times"], 2, L["Show when each message was sent."]),
         outgoingOnRight = option(
             "toggle",
@@ -387,7 +393,7 @@ function Settings:Options()
             L["Layout and previews"],
             1,
             messages,
-            { "outgoingOnRight", "timestamps", "showMessagePreviews" }
+            { "outgoingOnRight", "timestamps", "showMessageClassIcons", "showMessagePreviews" }
         ),
         presence = section(L["Typing indicators"], 3, messages, { "typingIndicators" }),
     }

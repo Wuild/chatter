@@ -30,7 +30,7 @@ function Emoji:SetEnabled(enabled)
         end
 
         window.emoteButton:SetShown(enabled)
-        window.input:SetTextInsets(14, enabled and 38 or 14, 0, 0)
+        window.input:SetTextInsets(14, enabled and 48 or 14, 0, 0)
         if not enabled and window.emotePicker then
             window.emotePicker:Hide()
         end
@@ -65,7 +65,7 @@ function Emoji.Toggle(window)
         self.emotePicker = picker
         picker:SetSize(216, 148)
         picker:SetPoint("BOTTOMRIGHT", self.input, "TOPRIGHT", 0, 6)
-        picker:SetFrameStrata("DIALOG")
+        picker:SetFrameLevel(self.frame:GetFrameLevel() + 40)
         picker:SetClampedToScreen(true)
         picker:EnableMouse(true)
         picker.surface = UI.Round(picker, 4, 0.13, 0.16, 0.18)

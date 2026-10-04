@@ -33,8 +33,13 @@ Mists, and Forever. Use one whisper-window addon at a time to avoid conflicts.
 
 - **Enter** sends your message. **Shift-click an item** to insert its link.
 - **Click a conversation** to switch chats. Your unfinished draft stays there.
+- **Right-click a conversation → Pin conversation** to keep it at the top.
+  Use **Unpin conversation** to return it to its usual order.
+- **Search above the conversation list** to find a character by name. Clear the
+  field to show all conversations again.
 - **Scroll up** to read older messages; **Jump to latest** returns to new ones.
 - **Drag across message text**, then press **Ctrl+C** to copy it.
+  Emoji stay visible while selecting and copy as text faces such as `:)`.
 - **Open the conversation menu** to move a chat into its own window or dock it again.
 - **Drag the title bar** to move a window and its bottom-right corner to resize it.
   Window positions, sizes, and undocked conversations are remembered.
@@ -45,6 +50,9 @@ Mists, and Forever. Use one whisper-window addon at a time to avoid conflicts.
 Choose a theme, adjust fonts and opacity, pick a notification sound—including
 classic WIM sounds—and set your preferred window sizes. Combat options control
 when windows hide or stay closed. Settings are shared across your characters.
+
+Consecutive messages share a sender heading. Class icons beside message groups
+can be toggled under **Messages → Show class icons in messages**.
 
 Under **Extensions**, you can enable and configure:
 

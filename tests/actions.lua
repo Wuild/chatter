@@ -135,3 +135,77 @@ C_AddOns = {
 addon.Actions:Run("report", person)
 assert(ReportFrame == reportFrame, "report frame loads at click time")
 print("Classic nil-location, explicit report targets and on-demand dialog loading passed.")
+
+addon.History = {
+    Get = function(key)
+        return Chatter.db.char.conversations[key]
+    end,
+}
+
+local nativeMenu
+UnitPopup_OpenMenu = function(which, context)
+    nativeMenu = { which = which, context = context }
+end
+
+person.character = { guid = "Player-1-2" }
+UnitGUID = function(unit)
+    return unit == "target" and "Player-someone-else" or nil
+end
+
+assert(addon.Actions:OpenPlayerMenu(person.key), "native player menu available")
+assert(
+    nativeMenu.which == "FRIEND" and nativeMenu.context.name == person.name,
+    "name-based menu targets the conversation, not current target"
+)
+UnitGUID = function(unit)
+    return unit == "focus" and person.character.guid or nil
+end
+
+addon.Actions:OpenPlayerMenu(person.key)
+assert(nativeMenu.which == "PLAYER" and nativeMenu.context.unit == "focus", "matching unit enables full player actions")
+addon.Actions:OpenPlayerMenu(bn.key)
+assert(
+    nativeMenu.which == "BN_FRIEND" and nativeMenu.context.bnetIDAccount == id,
+    "Battle.net menu uses fresh account ID"
+)
+assert(nativeMenu.context.accountInfo == nil, "native menu owns account lookup")
+assert(not addon.Actions:OpenPlayerMenu("removed"), "missing conversations cannot open stale menus")
+person.demo = true
+assert(not addon.Actions:OpenPlayerMenu(person.key), "demo conversations do not open real player actions")
+person.demo = nil
+UnitPopup_OpenMenu = nil
+assert(not addon.Actions:OpenPlayerMenu(person.key), "older clients retain custom action fallback")
+print("Native conversation player menus, correct targets, Battle.net and fallback passed.")
+
+local modifiers, registrations, appended, dividers = {}, 0, 0, 0
+Menu = {
+    ModifyMenu = function(tag, callback)
+        modifiers[tag] = callback
+        registrations = registrations + 1
+    end,
+}
+
+menu.CreateDivider = function()
+    dividers = dividers + 1
+end
+
+UnitPopup_OpenMenu = function(which, context)
+    modifiers["MENU_UNIT_" .. which](nil, menu, context)
+end
+
+local function appendEntries(description)
+    assert(description == menu, "append to native root menu")
+    appended = appended + 1
+end
+
+assert(addon.Actions:OpenPlayerMenu(person.key, appendEntries), "extended native menu opens")
+assert(appended == 1 and dividers == 1, "native menu gets conversation actions after divider")
+addon.Actions:OpenPlayerMenu(person.key, appendEntries)
+assert(appended == 2 and registrations == 1, "register modifier once per menu type")
+modifiers.MENU_UNIT_PLAYER(nil, menu, {})
+assert(appended == 2 and dividers == 2, "ordinary player menus are unchanged")
+addon.Actions:OpenPlayerMenu(bn.key, appendEntries)
+assert(appended == 3 and registrations == 2, "Battle.net menus also receive conversation actions")
+Menu = nil
+assert(not addon.Actions:OpenPlayerMenu(person.key, appendEntries), "missing extension API uses complete fallback")
+print("Native menu extensions remain scoped to Chatter and preserve fallback support.")

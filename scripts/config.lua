@@ -12,6 +12,7 @@ addon.defaults = {
         maxMessages = 200,
         smileys = true,
         timestamps = true,
+        showMessageClassIcons = true,
         outgoingOnRight = true,
         typingIndicators = true,
         showMessagePreviews = true,

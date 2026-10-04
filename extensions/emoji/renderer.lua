@@ -21,10 +21,10 @@ function Renderer.Render(token, fontSize, wrap)
         for _, alias in ipairs(aliases) do
             if token:sub(cursor, cursor + #alias - 1) == alias then
                 local textSize = math.floor(fontSize or 12)
-                local size = textSize + 4
-                -- Let the FontString align the inline texture. A guessed font
-                -- descent shifts it again and varies incorrectly with font size.
-                local offset = 0
+                local size = textSize + 2
+                -- Align the icon with the text baseline instead of floating
+                -- above lowercase letters. Scale the descent with the font.
+                local offset = -math.floor(textSize / 7)
                 local texture = "|TInterface\\AddOns\\Chatter\\assets\\emotes\\"
                     .. smileys[alias]
                     .. ".tga:"

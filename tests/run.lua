@@ -43,15 +43,15 @@ equal(Format.Message(link, true), link, "native item links untouched")
 assert(Format.Message(":D =D :P ;)", true):find("excited.tga", 1, true))
 equal(Format.Message(":D =D :P", false), ":D =D :P", "disabled smileys")
 assert(
-    Format.Message(":D", true, 14):find(":18:18:0:0:32:32:4:28:4:28|t", 1, true),
-    "smileys use native inline alignment"
+    Format.Message(":D", true, 14):find(":16:16:0:-2:32:32:4:28:4:28|t", 1, true),
+    "smileys align to the text baseline"
 )
 assert(
-    Format.Message("<3", true, 28):find(":32:32:0:0:32:32:4:28:4:28|t", 1, true),
+    Format.Message("<3", true, 28):find(":30:30:0:-4:32:32:4:28:4:28|t", 1, true),
     "larger fonts do not introduce a vertical shift"
 )
 assert(
-    Format.Message(":)", true, 10):find(":14:14:0:0:32:32:4:28:4:28|t", 1, true),
+    Format.Message(":)", true, 10):find(":12:12:0:-1:32:32:4:28:4:28|t", 1, true),
     "small chat fonts keep proportional smileys"
 )
 local url = "https://example.com/path?q=:D&x=1"

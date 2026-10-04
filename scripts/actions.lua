@@ -172,6 +172,66 @@ function Actions:AddMenu(menu, conversation)
     end
 end
 
+function Actions:OpenPlayerMenu(key, appendEntries)
+    local conversation = addon.History.Get(key)
+    if not conversation or conversation.demo then
+        return false
+    end
+
+    -- Clients without menu extensions retain the complete custom fallback.
+    if appendEntries and not (Menu and Menu.ModifyMenu) then
+        return false
+    end
+
+    local context = self:Context(conversation)
+    -- Blizzard resolves fresh account data itself and rejects prefilled tables.
+    context.accountInfo = nil
+    local which = "FRIEND"
+    if conversation.transport == "bnet" then
+        if not context.bnetIDAccount then
+            return false
+        end
+
+        which = "BN_FRIEND"
+    elseif context.guid and UnitGUID then
+        for _, unit in ipairs({ "target", "focus", "mouseover" }) do
+            local guid = UnitGUID(unit)
+            if not (HasAnySecretValues and HasAnySecretValues(guid)) and guid == context.guid then
+                context.unit = unit
+                which = "PLAYER"
+                break
+            end
+        end
+    end
+
+    if appendEntries then
+        self.menuModifiers = self.menuModifiers or {}
+        if not self.menuModifiers[which] then
+            Menu.ModifyMenu("MENU_UNIT_" .. which, function(_, menu, data)
+                -- Only extend menus opened by Chatter, never other player menus.
+                if data and data.chatterMenuEntries then
+                    menu:CreateDivider()
+                    data.chatterMenuEntries(menu)
+                end
+            end)
+
+            self.menuModifiers[which] = true
+        end
+
+        context.chatterMenuEntries = appendEntries
+    end
+
+    if UnitPopup_OpenMenu then
+        UnitPopup_OpenMenu(which, context)
+        return true
+    elseif UnitPopupManager and UnitPopupManager.OpenMenu then
+        UnitPopupManager:OpenMenu(which, context)
+        return true
+    end
+
+    return false
+end
+
 function Actions:Run(key, conversation)
     -- Resolve again at click time, including live Battle.net account IDs and
     -- ignore state, rather than keeping an old header/menu target.
