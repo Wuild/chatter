@@ -1,30 +1,30 @@
-# Chatter
+# Whispr
 
 Keep your **World of Warcraft whispers** together in one inbox or give each
-conversation its own window. Chatter includes saved history, unread badges,
+conversation its own window. Whispr includes saved history, unread badges,
 class colors, smileys, and character and Battle.net conversations.
 
 [![Support me on Patreon](https://img.shields.io/badge/Support_me_on-Patreon-FF424D?style=for-the-badge&logo=patreon&logoColor=white)](https://www.patreon.com/c/Wuild)
 
 **Combined mode** — browse your conversations and unread messages in one window.
 
-![Chatter's combined inbox with class icons, unread badges, and a conversation](https://raw.githubusercontent.com/Wuild/chatter/main/docs/screenshots/combined-mode.png)
+![Whispr's combined inbox with class icons, unread badges, and a conversation](https://raw.githubusercontent.com/Wuild/whispr/main/docs/screenshots/combined-mode.png)
 
 **Separate mode** — keep individual conversations wherever you want them on screen.
 
-![A Chatter conversation in its own separate window](https://raw.githubusercontent.com/Wuild/chatter/main/docs/screenshots/separate-mode.png)
+![A Whispr conversation in its own separate window](https://raw.githubusercontent.com/Wuild/whispr/main/docs/screenshots/separate-mode.png)
 
 *Screenshots use fictional conversations.*
 
 ## Get started
 
-[Download the source ZIP](https://github.com/Wuild/chatter/archive/refs/heads/main.zip),
-extract it, and rename the addon folder to **Chatter**. Place it in
+[Download the source ZIP](https://github.com/Wuild/whispr/archive/refs/heads/main.zip),
+extract it, and rename the addon folder to **Whispr**. Place it in
 **Interface/AddOns** and restart the game.
 
-1. Open Chatter with **/chatter** or its minimap button.
+1. Open Whispr with **/whispr** or its minimap button.
 2. Whisper someone using **/w** or the game's usual Whisper menu.
-3. Open **Settings** with the cog or **/chatter settings** to make it your own.
+3. Open **Settings** with the cog or **/whispr settings** to make it your own.
 
 Includes support for Retail, Classic Era, Anniversary/TBC, Wrath, Cataclysm,
 Mists, and Forever. Use one whisper-window addon at a time to avoid conflicts.
@@ -65,9 +65,9 @@ Under **Extensions**, you can enable and configure:
 
 ## Support
 
-[Report an issue](https://github.com/Wuild/chatter/issues) ·
+[Report an issue](https://github.com/Wuild/whispr/issues) ·
 [Contributor guide](docs/development.md) ·
 [Extension API](docs/extensions.md)
 
-Chatter's original code is [MIT licensed](LICENSE). Bundled libraries and artwork
+Whispr's original code is [MIT licensed](LICENSE). Bundled libraries and artwork
 retain their own licenses and credits.

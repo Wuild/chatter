@@ -28,7 +28,7 @@ end
 function UI.Grain(parent)
     local texture = parent:CreateTexture(nil, "BACKGROUND", nil, 2)
     texture:SetAllPoints()
-    texture:SetTexture("Interface\\AddOns\\Chatter\\assets\\panel-grain.tga", "REPEAT", "REPEAT")
+    texture:SetTexture("Interface\\AddOns\\Whispr\\assets\\panel-grain.tga", "REPEAT", "REPEAT")
 
     local function resize()
         texture:SetTexCoord(0, math.max(1, parent:GetWidth()) / 64, 0, math.max(1, parent:GetHeight()) / 64)
@@ -36,7 +36,7 @@ function UI.Grain(parent)
 
     parent:HookScript("OnSizeChanged", resize)
     resize()
-    texture:SetAlpha(Chatter.db.global.backgroundOpacity or 1)
+    texture:SetAlpha(Whispr.db.global.backgroundOpacity or 1)
     if addon.Theme then
         addon.Theme.grains[texture] = true
     end
@@ -57,7 +57,7 @@ function UI.Round(parent, radius, r, g, b, a)
 
     for _, point in ipairs({ "TOPLEFT", "TOPRIGHT", "BOTTOMLEFT", "BOTTOMRIGHT" }) do
         local corner = part()
-        corner:SetTexture("Interface\\AddOns\\Chatter\\assets\\corner.tga")
+        corner:SetTexture("Interface\\AddOns\\Whispr\\assets\\corner.tga")
         corner:SetSize(radius, radius)
         corner:SetPoint(point)
         local right, bottom = point:find("RIGHT"), point:find("BOTTOM")
@@ -240,7 +240,7 @@ function UI.IconButton(parent, icon, tooltip, size, action, accent)
 
     function button:SetIcon(name, hint)
         self.tooltip = hint
-        self.icon:SetTexture("Interface\\AddOns\\Chatter\\assets\\icons\\" .. name .. ".tga")
+        self.icon:SetTexture("Interface\\AddOns\\Whispr\\assets\\icons\\" .. name .. ".tga")
     end
 
     button:SetIcon(icon, tooltip)
@@ -269,7 +269,7 @@ function UI.EmoteButton(parent, asset, tooltip, size, action)
     local texture = button:CreateTexture(nil, "ARTWORK")
     texture:SetSize(size - 8, size - 8)
     texture:SetPoint("CENTER")
-    texture:SetTexture("Interface\\AddOns\\Chatter\\assets\\emotes\\" .. asset .. ".tga")
+    texture:SetTexture("Interface\\AddOns\\Whispr\\assets\\emotes\\" .. asset .. ".tga")
     texture:SetTexCoord(4 / 32, 28 / 32, 4 / 32, 28 / 32)
     button:HookScript("OnEnter", function()
         GameTooltip:SetOwner(button, "ANCHOR_TOP")
@@ -307,7 +307,7 @@ local classAssets = {
 
 function UI.SetClassIcon(texture, classFile)
     if classAssets[classFile] then
-        texture:SetTexture("Interface\\AddOns\\Chatter\\assets\\classes\\" .. classAssets[classFile] .. ".tga")
+        texture:SetTexture("Interface\\AddOns\\Whispr\\assets\\classes\\" .. classAssets[classFile] .. ".tga")
         texture:SetTexCoord(0.1, 0.9, 0.1, 0.9)
         return true
     end

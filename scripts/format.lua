@@ -23,7 +23,7 @@ function Format.Decode(text)
 end
 
 local function inputLink(raw, display)
-    return "|cff68bfff|Hchatterinput:" .. encode(raw) .. "|h" .. display .. "|h|r"
+    return "|cff68bfff|Hwhisprinput:" .. encode(raw) .. "|h" .. display .. "|h|r"
 end
 
 -- Native chat markers are independent of the optional emoji extension.
@@ -60,7 +60,7 @@ local function plain(text, enabled, fontSize, inviteKey, inputMode)
                     return inputLink(url, url) .. suffix
                 end
 
-                return "|cff68bfff|Hchatterurl:" .. encode(url) .. "|h" .. url .. "|h|r" .. suffix
+                return "|cff68bfff|Hwhisprurl:" .. encode(url) .. "|h" .. url .. "|h|r" .. suffix
             end
 
             if enabled then
@@ -131,7 +131,7 @@ function Format.Message(text, enabled, fontSize, inviteKey, inputMode)
 end
 
 -- Visit plain tokens only; actions must never trigger from link payloads/labels,
--- textures or URLs (including forged Chatter action links in received text).
+-- textures or URLs (including forged Whispr action links in received text).
 function Format.VisitTokens(text, callback)
     mapPlain(text, function(span)
         for token in span:gmatch("%S+") do
@@ -151,7 +151,7 @@ Format.Encode = encode
 function Format.InputPlain(text)
     local result, spans, cursor, rawLength = {}, {}, 1, 0
     while cursor <= #text do
-        local first, last, payload = text:find("|Hchatterinput:(%x+)|h.-|h", cursor)
+        local first, last, payload = text:find("|Hwhisprinput:(%x+)|h.-|h", cursor)
         if not first then
             break
         end
@@ -224,7 +224,7 @@ function Format.Outgoing(text)
         local tail = text:sub(first)
         local escape = tail:match("^||") or tail:match("^|c%x%x%x%x%x%x%x%x") or tail:match("^|r")
         local link = tail:match("^|H.-|h.-|h")
-        if link and not link:match("^|Hchatter") then
+        if link and not link:match("^|Hwhispr") then
             escape = link
         end
 

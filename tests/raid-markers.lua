@@ -1,6 +1,6 @@
 local addon = {}
-assert(loadfile("scripts/filters.lua"))("Chatter", addon)
-assert(loadfile("scripts/format.lua"))("Chatter", addon)
+assert(loadfile("scripts/filters.lua"))("Whispr", addon)
+assert(loadfile("scripts/format.lua"))("Whispr", addon)
 local F = addon.Format
 local names = { "star", "circle", "diamond", "triangle", "moon", "square", "cross", "skull" }
 for i, name in ipairs(names) do

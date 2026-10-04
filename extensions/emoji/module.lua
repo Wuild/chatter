@@ -1,7 +1,7 @@
 local _, addon = ...
 local L = addon.L
 
-local Emoji = Chatter:NewExtension("emoji", {
+local Emoji = Whispr:NewExtension("emoji", {
     name = L["Emoji"],
     version = "1.0.0",
     builtin = true,
@@ -11,7 +11,7 @@ local Emoji = Chatter:NewExtension("emoji", {
 addon.Emoji = Emoji
 
 function Emoji:Migrate()
-    local profile = Chatter.db.global
+    local profile = Whispr.db.global
     profile.extensions = profile.extensions or {}
     if profile.extensions.emoji == nil then
         profile.extensions.emoji = profile.smileys ~= false
@@ -22,7 +22,7 @@ end
 
 function Emoji:SetEnabled(enabled)
     -- Keep the existing formatting flag as the renderer's compatibility switch.
-    Chatter.db.global.smileys = enabled
+    Whispr.db.global.smileys = enabled
 
     local function refresh(window)
         if not window or not window.frame then
@@ -46,7 +46,7 @@ function Emoji:SetEnabled(enabled)
 end
 
 function Emoji.Toggle(window)
-    if not Chatter.db.global.smileys then
+    if not Whispr.db.global.smileys then
         return
     end
 

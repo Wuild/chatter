@@ -1,6 +1,6 @@
 local _, addon = ...
 local L, Format = addon.L, addon.Format
-local Keywords = Chatter:NewExtension("keywords", {
+local Keywords = Whispr:NewExtension("keywords", {
     name = L["Keyword actions"],
     version = "1.0.0",
     builtin = true,
@@ -99,7 +99,7 @@ function Keywords:RenderToken(_, token, key)
     end
 
     return prefix
-        .. "|cffffff00|Hchatterkeyword:"
+        .. "|cffffff00|Hwhisprkeyword:"
         .. Format.Encode(key)
         .. ":"
         .. Format.Encode(word:lower())
@@ -114,7 +114,7 @@ function Keywords:Resolve(link, key)
         return
     end
 
-    local encodedKey, encodedWord = link:match("^chatterkeyword:(%x+):(%x+)$")
+    local encodedKey, encodedWord = link:match("^whisprkeyword:(%x+):(%x+)$")
     if not encodedKey or Format.Decode(encodedKey) ~= key then
         return
     end
@@ -463,7 +463,7 @@ function Keywords:OnInitialize()
         settings.rules = { { words = "inv, invite, invites", action = "invite" } }
     end
 
-    local global = Chatter.db.global
+    local global = Whispr.db.global
     global.extensions = global.extensions or {}
     if global.extensions.keywords == nil then
         global.extensions.keywords = global.inviteLinks ~= false

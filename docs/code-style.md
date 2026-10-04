@@ -1,6 +1,6 @@
 # Lua code style and checks
 
-Chatter follows my default layout: four spaces per indent,
+Whispr follows my default layout: four spaces per indent,
 expanded functions and control-flow blocks, one statement per line, and blank
 lines between functions and logical sections. Avoid compressing callbacks or
 chaining several statements with semicolons.

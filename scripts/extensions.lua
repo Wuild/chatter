@@ -82,7 +82,7 @@ end
 function Module:RegisterDefaults(defaults)
     assert(type(defaults) == "table", L["Extension defaults must be a table"])
     self.defaults = copy(defaults)
-    if Chatter.db then
+    if Whispr.db then
         self:GetSettings()
     end
 end
@@ -260,7 +260,7 @@ function Extensions:Context(id)
     return {
         version = 1,
         GetSettings = function()
-            local profile = Chatter.db.global
+            local profile = Whispr.db.global
             profile.extensionSettings = profile.extensionSettings or {}
             profile.extensionSettings[id] = profile.extensionSettings[id] or {}
             return profile.extensionSettings[id]
@@ -305,7 +305,7 @@ function Extensions:Activate(id)
         return
     end
 
-    local profile = Chatter.db.global
+    local profile = Whispr.db.global
     local enabled = profile.extensions and profile.extensions[id]
     if enabled == false or (enabled == nil and entry.module and entry.module.defaultEnabled == false) then
         return
@@ -363,7 +363,7 @@ function Extensions:SetEnabled(id, value)
         return nil, L["Unknown extension"]
     end
 
-    local profile = Chatter.db.global
+    local profile = Whispr.db.global
     profile.extensions = profile.extensions or {}
     profile.extensions[id] = value == true
     if not self.entries[id].transitioning then
@@ -488,7 +488,7 @@ function Extensions:Options()
             type = "description",
             order = 0,
             fontSize = "medium",
-            name = L["Manage built-in features and integrations here. Built-in extensions come with Chatter; other extensions are installed as separate WoW addons."],
+            name = L["Manage built-in features and integrations here. Built-in extensions come with Whispr; other extensions are installed as separate WoW addons."],
         },
     }
 
@@ -544,7 +544,7 @@ function Extensions:Options()
             description = {
                 type = "description",
                 order = 1,
-                name = (spec.builtin and L["Included with Chatter.\n"] or "")
+                name = (spec.builtin and L["Included with Whispr.\n"] or "")
                     .. (spec.description or "")
                     .. (spec.version and ("\n" .. string.format(L["Version %s"], tostring(spec.version))) or ""),
             },
@@ -645,8 +645,8 @@ function Extensions:Options()
     return { type = "group", name = L["Extensions"], childGroups = "tree", args = args }
 end
 
--- Available to dependent addons once Chatter's files have loaded.
-Chatter.API = {
+-- Available to dependent addons once Whispr's files have loaded.
+Whispr.API = {
     version = 2,
     NewExtension = function(id, metadata)
         return Extensions:NewModule(id, metadata)
@@ -680,24 +680,24 @@ Chatter.API = {
 }
 
 -- Colon-method entry points mirror the AceAddon module workflow without sharing
--- AceAddon's automatic lifecycle (Chatter settings own extension activation).
-function Chatter:NewExtension(id, metadata)
+-- AceAddon's automatic lifecycle (Whispr settings own extension activation).
+function Whispr:NewExtension(id, metadata)
     return Extensions:NewModule(id, metadata)
 end
 
-function Chatter:GetExtension(id, silent)
+function Whispr:GetExtension(id, silent)
     return Extensions:GetModule(id, silent)
 end
 
-function Chatter:EnableExtension(id)
+function Whispr:EnableExtension(id)
     return Extensions:SetEnabled(id, true)
 end
 
-function Chatter:DisableExtension(id)
+function Whispr:DisableExtension(id)
     return Extensions:SetEnabled(id, false)
 end
 
-function Chatter:IterateExtensions()
+function Whispr:IterateExtensions()
     local id
     return function()
         repeat

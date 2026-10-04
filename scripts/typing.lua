@@ -1,5 +1,5 @@
 local _, addon = ...
-local Typing = { prefix = "ChatterTyping1", peers = {}, outgoing = {}, incoming = {} }
+local Typing = { prefix = "WhisprTyping1", peers = {}, outgoing = {}, incoming = {} }
 addon.Typing = Typing
 
 local function secret(...)
@@ -7,7 +7,7 @@ local function secret(...)
 end
 
 local function enabled()
-    return Typing.enabled and Chatter.db.global.typingIndicators ~= false
+    return Typing.enabled and Whispr.db.global.typingIndicators ~= false
 end
 
 -- Battle.net addon packets address game accounts, not whisper account IDs.
@@ -84,7 +84,7 @@ function Typing:Discover(key)
         return
     end
 
-    local target = self:Endpoint(Chatter.db.char.conversations[key])
+    local target = self:Endpoint(Whispr.db.char.conversations[key])
     if not target then
         return
     end
@@ -160,7 +160,7 @@ function Typing:SetIncoming(key, expiry)
     if wasTyping ~= (expiry ~= nil) and addon.Extensions then
         addon.Extensions:ConversationEvent(
             "TYPING_CHANGED",
-            Chatter.db.char.conversations[key],
+            Whispr.db.char.conversations[key],
             { typing = expiry ~= nil }
         )
     end
@@ -181,7 +181,7 @@ function Typing:Tick()
         if
             not enabled()
             or now - state.edited >= 4
-            or not Chatter.db.char.conversations[key]
+            or not Whispr.db.char.conversations[key]
             or window.active ~= key
             or not window.frame:IsShown()
         then
@@ -257,7 +257,7 @@ function Typing:Receive(event, prefix, payload, channel, sender)
             return
         end
 
-        for id, conversation in pairs(Chatter.db.char.conversations) do
+        for id, conversation in pairs(Whispr.db.char.conversations) do
             if
                 not conversation.demo
                 and conversation.transport ~= "bnet"
@@ -272,7 +272,7 @@ function Typing:Receive(event, prefix, payload, channel, sender)
     -- A greeting may precede the first actual whisper. Reply without creating
     -- history, unread badges or windows, and bound replies to unknown senders.
     local now = GetTime()
-    if not key or not Chatter.db.char.conversations[key] then
+    if not key or not Whispr.db.char.conversations[key] then
         if payload == "H" and (not self.unknownReply or now - self.unknownReply >= 2) then
             self.unknownReply = now
             self:Transmit(sender, "A")
@@ -313,7 +313,7 @@ function Typing:Disable()
 end
 
 function Typing:Enable()
-    if Chatter.db.global.typingIndicators == false then
+    if Whispr.db.global.typingIndicators == false then
         return
     end
 

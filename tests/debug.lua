@@ -10,7 +10,7 @@ GetTime = function()
 end
 
 local original = { messages = { { text = "real history" } } }
-Chatter = {
+Whispr = {
     db = { char = { sequence = 1, conversations = { friend = original } }, global = { maxMessages = 1, maxPeople = 1 } },
 }
 
@@ -25,7 +25,7 @@ C_ChatInfo = {
     end,
 }
 
-function Chatter:PlayMessageSound()
+function Whispr:PlayMessageSound()
     sound = sound + 1
 end
 
@@ -64,9 +64,9 @@ addon.Notification = {
     end,
 }
 
-assert(loadfile("scripts/debug.lua"))("Chatter", addon)
+assert(loadfile("scripts/debug.lua"))("Whispr", addon)
 addon.Debug:Incoming()
-local demo = Chatter.db.char.conversations["demo:chatter"]
+local demo = Whispr.db.char.conversations["demo:whispr"]
 assert(demo.demo and #demo.messages == 1 and demo.unread == 1, "incoming simulation is local demo history")
 assert(
     addon.Window.received == demo.key and sound == 1 and events.MESSAGE_RECEIVED.message == demo.messages[1],
@@ -78,7 +78,7 @@ for i = 1, 205 do
 end
 
 assert(
-    #demo.messages == 200 and Chatter.db.char.conversations.friend == original,
+    #demo.messages == 200 and Whispr.db.char.conversations.friend == original,
     "simulation bounded without evicting real history"
 )
 addon.Debug:Typing()

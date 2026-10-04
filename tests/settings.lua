@@ -6,7 +6,7 @@ local addon = {}
 assert(loadfile("tests/support/locale.lua"))(addon)
 
 local function load(name)
-    assert(loadfile("scripts/" .. name .. ".lua"))("Chatter", addon)
+    assert(loadfile("scripts/" .. name .. ".lua"))("Whispr", addon)
 end
 
 assert(loadfile("scripts/libraries/LibStub/LibStub.lua"))()
@@ -35,10 +35,10 @@ local function copy(t)
 end
 
 load("config")
-Chatter.db = { global = copy(addon.defaults.global), char = { conversations = {} } }
-Chatter.db.global.maxMessages = 350
-Chatter.db.global.chatFontSize = 19
-Chatter.db.global.windowColor = { 0.15, 0.12, 0.1 }
+Whispr.db = { global = copy(addon.defaults.global), char = { conversations = {} } }
+Whispr.db.global.maxMessages = 350
+Whispr.db.global.chatFontSize = 19
+Whispr.db.global.windowColor = { 0.15, 0.12, 0.1 }
 local trims, refreshes, cardRefreshes, mode, combat, typing, sounds = 0, 0, 0, nil, nil, false, 0
 addon.History = {
     Trim = function()
@@ -86,7 +86,7 @@ addon.Typing = {
 
 addon.Sounds = { labels = { test = "Test" } }
 
-function Chatter:PlayMessageSound()
+function Whispr:PlayMessageSound()
     sounds = sounds + 1
 end
 
@@ -96,37 +96,37 @@ end
 
 load("theme")
 load("extensions")
-assert(loadfile("extensions/notification/module.lua"))("Chatter", addon)
-assert(loadfile("extensions/keywords/module.lua"))("Chatter", addon)
-assert(loadfile("extensions/character-names/module.lua"))("Chatter", addon)
+assert(loadfile("extensions/notification/module.lua"))("Whispr", addon)
+assert(loadfile("extensions/keywords/module.lua"))("Whispr", addon)
+assert(loadfile("extensions/character-names/module.lua"))("Whispr", addon)
 load("debug")
 load("settings")
 local panels, opened = {}, nil
 local dialog = LibStub:NewLibrary("AceConfigDialog-3.0", 1)
 
 function dialog:AddToBlizOptions(app, name, parent, path, child)
-    assert(app == "ChatterLauncher")
+    assert(app == "WhisprLauncher")
     panels[#panels + 1] = { app = app, name = name, parent = parent, path = path, child = child }
     return {}, 100 + #panels
 end
 
 function dialog:SetDefaultSize(app, width, height)
-    assert(app == "Chatter" and width == 840 and height == 580)
+    assert(app == "Whispr" and width == 840 and height == 580)
 end
 
 function dialog:Open(app, container)
-    assert(app == "Chatter" and container == nil, "AceConfig owns the whole window")
+    assert(app == "Whispr" and container == nil, "AceConfig owns the whole window")
     opened = "standard"
 end
 
 addon.Settings:Initialize()
 assert(#panels == 1, "only one native launcher page")
 assert(
-    panels[1].name == "Chatter" and panels[1].parent == nil and panels[1].path == nil,
+    panels[1].name == "Whispr" and panels[1].parent == nil and panels[1].path == nil,
     "launcher has no subcategory paths"
 )
-local launcher = registry:GetOptionsTable("ChatterLauncher")("dialog", "AceConfigDialog-3.0")
-registry:ValidateOptionsTable(launcher, "ChatterLauncher")
+local launcher = registry:GetOptionsTable("WhisprLauncher")("dialog", "AceConfigDialog-3.0")
+registry:ValidateOptionsTable(launcher, "WhisprLauncher")
 local controls = 0
 for _, control in pairs(launcher.args) do
     assert(control.type == "execute")
@@ -153,14 +153,14 @@ assert(opened == "standard", "cog opens standard AceConfig window")
 assert(#panels == 1, "reopening does not duplicate registrations")
 local notified = 0
 registry.RegisterCallback({}, "ConfigTableChange", function(_, name)
-    assert(name == "Chatter")
+    assert(name == "Whispr")
     notified = notified + 1
 end)
 
 addon.Settings:Refresh()
 assert(notified == 1, "extensions and theme changes notify native options")
-local options = registry:GetOptionsTable("Chatter")("dialog", "AceConfigDialog-3.0")
-registry:ValidateOptionsTable(options, "Chatter")
+local options = registry:GetOptionsTable("Whispr")("dialog", "AceConfigDialog-3.0")
+registry:ValidateOptionsTable(options, "Whispr")
 local count = 0
 for key, group in pairs(options.args) do
     assert(group.type == "group" and not group.inline, key .. " must be a category")
@@ -169,7 +169,7 @@ end
 
 assert(count == 8, "eight distinct categories")
 assert(
-    Chatter.db.global.maxMessages == 350 and Chatter.db.global.chatFontSize == 19,
+    Whispr.db.global.maxMessages == 350 and Whispr.db.global.chatFontSize == 19,
     "opening settings preserves existing preferences"
 )
 assert(addon.Theme:CurrentPreset() == "custom", "legacy custom colors remain custom")
@@ -182,7 +182,7 @@ combatOptions.hideInCombat.set(nil, true)
 assert(combat, "combat setting applies immediately")
 assert(not combatOptions.dontHideWhenTyping.disabled(), "typing exception enabled with combat hiding")
 combatOptions.dontHideWhenTyping.set(nil, true)
-assert(Chatter.db.global.dontHideWhenTyping, "typing exception saved")
+assert(Whispr.db.global.dontHideWhenTyping, "typing exception saved")
 options.args.messages.args.presence.args.typingIndicators.set(nil, true)
 assert(typing, "typing toggle still enables protocol")
 options.args.messages.args.layout.args.showMessagePreviews.set(nil, false)
@@ -190,7 +190,7 @@ assert(cardRefreshes == 1, "preview setting refreshes cards")
 options.args.messages.set({ "messages", "smileys" }, false)
 assert(refreshes == 1, "format settings rerender messages")
 options.args.appearance.args.typography.set({ "appearance", "typography", "chatFontSize" }, 22)
-assert(Chatter.db.global.chatFontSize == 22, "nested font controls write correct preference")
+assert(Whispr.db.global.chatFontSize == 22, "nested font controls write correct preference")
 options.args.notifications.args.notificationSound.set(nil, "test")
 assert(sounds == 1, "sound selection previews sample")
 assert(trims == 0, "visual and behavioral settings never trim history")
@@ -199,13 +199,13 @@ assert(trims == 1, "only history settings apply retention")
 options.args.themes.args.themePreset.set(nil, "forest")
 assert(addon.Theme:CurrentPreset() == "forest", "preset applies through settings")
 assert(
-    Chatter.db.global.chatFontSize == 22 and Chatter.db.global.maxMessages == 60,
+    Whispr.db.global.chatFontSize == 22 and Whispr.db.global.maxMessages == 60,
     "theme leaves non-color preferences intact"
 )
 options.args.themes.args.colors.args.accentColor.set(nil, 0.9, 0.1, 0.2)
 assert(addon.Theme:CurrentPreset() == "custom", "custom color override updates preset label")
 addon.Extensions:Start()
-assert(Chatter.API.RegisterExtension("pack", {
+assert(Whispr.API.RegisterExtension("pack", {
     name = "Theme pack",
     onEnable = function(ctx)
         ctx.RegisterTheme("violet", { name = "Violet", colors = { accentColor = { 0.7, 0.3, 0.8 } } })
@@ -213,7 +213,7 @@ assert(Chatter.API.RegisterExtension("pack", {
 }))
 
 options = addon.Settings:Options()
-registry:ValidateOptionsTable(options, "Chatter")
+registry:ValidateOptionsTable(options, "Whispr")
 assert(options.args.extensions.args.extension_pack, "registered extension appears in category")
 assert(options.args.extensions.childGroups == "tree", "extension navigation is nested inside Extensions")
 for _, panel in ipairs(panels) do
@@ -307,7 +307,7 @@ local container = {
     Show = function() end,
 }
 
-local ok, err = pcall(realDialog.Open, realDialog, "Chatter", container, "extensions", "overview")
+local ok, err = pcall(realDialog.Open, realDialog, "Whispr", container, "extensions", "overview")
 assert(not ok and tostring(err):find("option", 1, true), "old nested path reproduces nil-option failure")
 for _, panel in ipairs(panels) do
     realDialog:Open(panel.app, container)
@@ -318,18 +318,18 @@ print("Real AceConfigDialog regression: old path fails, launcher opens without a
 
 assert(options.args.extensions.args.overview.inline, "activation controls render on Extensions itself")
 
-realDialog.OpenFrames.Chatter = { frame = {
+realDialog.OpenFrames.Whispr = { frame = {
     IsShown = function()
         return true
     end,
 } }
 
 assert(addon.Settings:IsShown(), "standard AceConfig window suppresses idle fade")
-realDialog.OpenFrames.Chatter.frame.IsShown = function()
+realDialog.OpenFrames.Whispr.frame.IsShown = function()
     return false
 end
 
 assert(not addon.Settings:IsShown(), "hidden settings is inactive")
-realDialog.OpenFrames.Chatter = nil
-assert(not addon.Settings:IsShown(), "released or reused AceGUI frames are not Chatter settings")
+realDialog.OpenFrames.Whispr = nil
+assert(not addon.Settings:IsShown(), "released or reused AceGUI frames are not Whispr settings")
 print("Standard window visibility follows the active AceConfig frame registry.")

@@ -8,11 +8,11 @@ LibStub = function()
     }
 end
 
-assert(loadfile("scripts/config.lua"))("Chatter", addon)
-assert(loadfile("scripts/theme.lua"))("Chatter", addon)
+assert(loadfile("scripts/config.lua"))("Whispr", addon)
+assert(loadfile("scripts/theme.lua"))("Whispr", addon)
 local defaults = addon.defaults.global
 local conversation = { messages = { { text = "keep" } } }
-Chatter.db = {
+Whispr.db = {
     global = {
         maxMessages = 350,
         notificationSound = "linux-bell",
@@ -53,7 +53,7 @@ addon.Window = {
 local button = addon.Theme:Options().args.resetAppearance
 assert(button.type == "execute", "settings exposes reset button")
 button.func()
-local profile = Chatter.db.global
+local profile = Whispr.db.global
 assert(
     not profile.windowColor and not profile.focusedBorderColor and not profile.conversationColor,
     "all theme overrides removed"
@@ -68,7 +68,7 @@ assert(
         and profile.separateWindows == true,
     "behavior preferences retained"
 )
-assert(Chatter.db.char.conversations.friend == conversation, "history retained")
+assert(Whispr.db.char.conversations.friend == conversation, "history retained")
 assert(refreshed == 1 and lists == 2, "main and popout appearance refresh immediately")
 print("Appearance reset restores visual defaults and preserves behavior and history.")
 profile.smileys = false

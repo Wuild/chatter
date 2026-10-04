@@ -4,7 +4,7 @@ local addon = {}
 assert(loadfile("tests/support/locale.lua"))(addon)
 
 local function load(name)
-    assert(loadfile("scripts/" .. name .. ".lua"))("Chatter", addon)
+    assert(loadfile("scripts/" .. name .. ".lua"))("Whispr", addon)
 end
 
 local function equal(actual, expected, label)
@@ -15,8 +15,8 @@ local function equal(actual, expected, label)
 end
 
 load("history")
-assert(loadfile("extensions/emoji/emotes.lua"))("Chatter", addon)
-assert(loadfile("extensions/emoji/renderer.lua"))("Chatter", addon)
+assert(loadfile("extensions/emoji/emotes.lua"))("Whispr", addon)
+assert(loadfile("extensions/emoji/renderer.lua"))("Whispr", addon)
 assert(loadfile("tests/support/emoji-filters.lua"))(addon)
 load("format")
 local History, Format = addon.History, addon.Format
@@ -56,7 +56,7 @@ assert(
 )
 local url = "https://example.com/path?q=:D&x=1"
 local rendered = Format.Message(url .. ".", true)
-local payload = rendered:match("|Hchatterurl:(.-)|h")
+local payload = rendered:match("|Hwhisprurl:(.-)|h")
 equal(Format.Decode(payload), url, "URL round trip and punctuation")
 equal(Format.Decode("xyz"), nil, "malformed URL payload")
 equal(Format.Preview(link), "[Some :D https://example.com item]", "plain preview")
@@ -79,7 +79,7 @@ local function flush()
     end
 end
 
-Chatter = {}
+Whispr = {}
 addon.Window = {
     Open = function(_, ...)
         opened[#opened + 1] = { ... }
@@ -121,11 +121,11 @@ function box:SetText(text)
 end
 
 function box:UpdateHeader()
-    Chatter:RouteEditBox(self)
+    Whispr:RouteEditBox(self)
 end
 
-Chatter:RouteEditBox(box)
-Chatter:RouteEditBox(box)
+Whispr:RouteEditBox(box)
+Whispr:RouteEditBox(box)
 box.text = "a preserved draft"
 flush()
 equal(#opened, 1, "one handoff despite multiple header updates")
@@ -134,11 +134,11 @@ equal(opened[1][2], "a preserved draft", "post-parser draft transferred")
 equal(box.hidden, true, "native composer deactivated")
 equal(box.attributes.chatType, "SAY", "native whisper mode reset")
 box.attributes.chatType, box.attributes.tellTarget = "WHISPER", "SECRET"
-Chatter:RouteEditBox(box)
+Whispr:RouteEditBox(box)
 flush()
 equal(#opened, 1, "secret targets ignored")
 box.attributes.tellTarget = "Someone Else"
-Chatter:RouteEditBox(box)
+Whispr:RouteEditBox(box)
 box.attributes.chatType = "PARTY"
 flush()
 equal(#opened, 1, "changed chat mode is not intercepted")
@@ -159,10 +159,10 @@ end
 
 ChatFrameUtil.ReplyTell = function() end
 ChatFrameUtil.ReplyTell2 = function() end
-Chatter.db = { char = { conversations = { ["first last"] = {}, ["other person"] = {}, ["bnet:test#1234"] = {} } } }
-Chatter.lastWhisper = "first last"
-Chatter.lastToldWhisper = "other person"
-Chatter:HookWhispers()
+Whispr.db = { char = { conversations = { ["first last"] = {}, ["other person"] = {}, ["bnet:test#1234"] = {} } } }
+Whispr.lastWhisper = "first last"
+Whispr.lastToldWhisper = "other person"
+Whispr:HookWhispers()
 local beforeReply = #opened
 hooks.ReplyTell("reply draft")
 equal(#opened, beforeReply, "reply does not focus during shortcut character event")
@@ -172,7 +172,7 @@ equal(opened[#opened][2], "reply draft", "reply preserves supplied draft")
 hooks.ReplyTell2()
 flush()
 equal(opened[#opened][1], "other person", "reply-to-last-sent uses outgoing target")
-Chatter.lastWhisper = "bnet:test#1234"
+Whispr.lastWhisper = "bnet:test#1234"
 hooks.ReplyTell()
 flush()
 equal(opened[#opened][1], "bnet:test#1234", "reply uses stable Battle.net identity")

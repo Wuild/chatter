@@ -31,7 +31,7 @@ for _, case in ipairs(cases) do
     WOW_PROJECT_ID = case[2]
     local addon = {}
     assert(loadfile("tests/support/locale.lua"))(addon)
-    assert(loadfile("scripts/client.lua"))("Chatter", addon)
+    assert(loadfile("scripts/client.lua"))("Whispr", addon)
     local client = addon.Client
     equal(client.flavor, case[3], "client detection")
     equal(client.hasLastNames, case[4], "only Forever enables last names")
@@ -52,9 +52,9 @@ for _, case in ipairs(cases) do
     }
 
     addon.History = {}
-    Chatter = {}
-    assert(loadfile("scripts/main.lua"))("Chatter", addon)
-    Chatter:Command(case[4] and "First Last hello there" or "First-Realm hello there")
+    Whispr = {}
+    assert(loadfile("scripts/main.lua"))("Whispr", addon)
+    Whispr:Command(case[4] and "First Last hello there" or "First-Realm hello there")
     equal(opened[1], case[4] and "First Last" or "First-Realm", "slash command uses flavor parser")
     equal(opened[2], "hello there", "slash command preserves draft")
     C_Timer = {
@@ -86,7 +86,7 @@ for _, case in ipairs(cases) do
 
     function box:Hide() end
 
-    Chatter:RouteEditBox(box)
+    Whispr:RouteEditBox(box)
     queue()
     equal(opened[1], target, "native resolved name is never split")
     equal(opened[2], "hello from /w", "native draft preserved")

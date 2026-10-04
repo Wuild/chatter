@@ -49,7 +49,7 @@ time = function()
 end
 
 local original = { messages = { { id = 1, text = "Keep me" } } }
-Chatter = {
+Whispr = {
     db = {
         char = { sequence = 1, conversations = { friend = original } },
         global = {
@@ -59,9 +59,9 @@ Chatter = {
     },
 }
 
-assert(loadfile("scripts/main.lua"))("Chatter", addon)
-Chatter:Command("demo")
-local demo = Chatter.db.char.conversations[opened]
+assert(loadfile("scripts/main.lua"))("Whispr", addon)
+Whispr:Command("demo")
+local demo = Whispr.db.char.conversations[opened]
 assert(demo.demo and #demo.messages == 100, "command creates one hundred local messages")
 pending()
 assert(
@@ -70,8 +70,8 @@ assert(
 )
 assert(addon.Window.scroll.offset == 820 and addon.Window.latest.shown, "demo scrolls above latest messages")
 assert(addon.Window.refreshed, "demo updates conversation card unread indicator")
-assert(Chatter.db.char.conversations.friend == original, "demo preserves real history even with low retention")
-assert(Chatter.db.global.maxMessages == 20, "demo does not change retention settings")
+assert(Whispr.db.char.conversations.friend == original, "demo preserves real history even with low retention")
+assert(Whispr.db.global.maxMessages == 20, "demo does not change retention settings")
 local days, directions = {}, {}
 for index, message in ipairs(demo.messages) do
     assert(message.text:find("[" .. index .. "/100]", 1, true), "messages are numbered")
@@ -90,8 +90,8 @@ end
 
 assert(count >= 5 and directions["true"] and directions["false"], "multiple days and both message directions")
 local lastID = demo.messages[100].id
-Chatter:Command("demo")
-demo = Chatter.db.char.conversations[opened]
+Whispr:Command("demo")
+demo = Whispr.db.char.conversations[opened]
 assert(#demo.messages == 100 and demo.messages[1].id > lastID, "repeat command resets instead of duplicating")
 local unreadCallback = pending
 addon.Window.active = "friend"
@@ -99,7 +99,7 @@ unreadCallback()
 assert(demo.unread == 0, "switching before callback does not alter another viewport")
 local notice
 
-function Chatter:Print(text)
+function Whispr:Print(text)
     notice = text
 end
 
@@ -109,7 +109,7 @@ C_ChatInfo = {
     end,
 }
 
-Chatter:Send({ active = opened, input = {
+Whispr:Send({ active = opened, input = {
     GetText = function()
         return "hello"
     end,

@@ -43,7 +43,7 @@ function Composer.Attach(input)
             raw, cursor = previous, previousCursor
         end
 
-        local profile = Chatter.db.global
+        local profile = Whispr.db.global
         local rendered = Format.Input(raw, true, profile.chatFontSize or 14)
         local _, spans = Format.InputPlain(rendered)
         -- Space newly decorated atomic tokens only. Existing links must stay

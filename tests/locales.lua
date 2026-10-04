@@ -14,7 +14,7 @@ local function boot(locale)
     assert(loadfile("scripts/libraries/AceLocale-3.0/AceLocale-3.0.lua"))()
     assert(loadfile("locales/enUS.lua"))()
     local addon = {}
-    assert(loadfile("scripts/locale.lua"))("Chatter", addon)
+    assert(loadfile("scripts/locale.lua"))("Whispr", addon)
     return addon
 end
 
@@ -26,7 +26,7 @@ for _, locale in ipairs({ "enUS", "enGB", "deDE", "frFR", "koKR", "zhCN" }) do
 end
 
 local addon = boot("deDE")
-local translated = LibStub("AceLocale-3.0"):NewLocale("Chatter", "deDE")
+local translated = LibStub("AceLocale-3.0"):NewLocale("Whispr", "deDE")
 translated["Messages"] = "Nachrichten"
 translated["Forest"] = "Wald"
 translated["Emoji"] = "Emojis"
@@ -35,14 +35,14 @@ assert(
     addon.L["Messages"] == "Nachrichten" and addon.L["Themes"] == "Themes",
     "partial locale overrides with English fallback"
 )
-Chatter = { db = { global = { chatFont = "Game default" } } }
-assert(loadfile("scripts/theme.lua"))("Chatter", addon)
-assert(loadfile("scripts/extensions.lua"))("Chatter", addon)
-assert(loadfile("extensions/emoji/emotes.lua"))("Chatter", addon)
-assert(loadfile("extensions/emoji/renderer.lua"))("Chatter", addon)
-assert(loadfile("extensions/emoji/module.lua"))("Chatter", addon)
-assert(loadfile("scripts/debug.lua"))("Chatter", addon)
-assert(loadfile("scripts/settings.lua"))("Chatter", addon)
+Whispr = { db = { global = { chatFont = "Game default" } } }
+assert(loadfile("scripts/theme.lua"))("Whispr", addon)
+assert(loadfile("scripts/extensions.lua"))("Whispr", addon)
+assert(loadfile("extensions/emoji/emotes.lua"))("Whispr", addon)
+assert(loadfile("extensions/emoji/renderer.lua"))("Whispr", addon)
+assert(loadfile("extensions/emoji/module.lua"))("Whispr", addon)
+assert(loadfile("scripts/debug.lua"))("Whispr", addon)
+assert(loadfile("scripts/settings.lua"))("Whispr", addon)
 assert(addon.Theme:Values().forest == "Wald", "theme label translates while preset ID stays stable")
 assert(
     addon.Settings:Options().args.messages.name == "Nachrichten",
@@ -65,7 +65,7 @@ LibStub = function(name)
     return realStub(name)
 end
 
-assert(loadfile("scripts/media.lua"))("Chatter", addon)
+assert(loadfile("scripts/media.lua"))("Whispr", addon)
 assert(
     addon.Media:Fonts()["Game default"] == "Spielstandard",
     "font label translates while saved font key stays stable"
@@ -74,7 +74,7 @@ LibStub = realStub
 
 -- Every lookup in a TOC-loaded module must have an explicit English entry.
 local english = boot("enUS").L
-local toc = assert(io.open("Chatter.toc")):read("*a")
+local toc = assert(io.open("Whispr.toc")):read("*a")
 local seen, count = {}, 0
 for path in toc:gmatch("[^\r\n]+") do
     if path:match("^scripts\\.*%.lua$") or path:match("^extensions\\.*%.lua$") then

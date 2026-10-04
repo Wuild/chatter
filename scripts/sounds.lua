@@ -34,5 +34,5 @@ function Sounds:Path(key)
         key = "linux-message"
     end
 
-    return "Interface\\AddOns\\Chatter\\assets\\sounds\\" .. filenames[key] .. ".ogg"
+    return "Interface\\AddOns\\Whispr\\assets\\sounds\\" .. filenames[key] .. ".ogg"
 end

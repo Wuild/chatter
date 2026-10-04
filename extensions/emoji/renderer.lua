@@ -25,7 +25,7 @@ function Renderer.Render(token, fontSize, wrap)
                 -- Align the icon with the text baseline instead of floating
                 -- above lowercase letters. Scale the descent with the font.
                 local offset = -math.floor(textSize / 7)
-                local texture = "|TInterface\\AddOns\\Chatter\\assets\\emotes\\"
+                local texture = "|TInterface\\AddOns\\Whispr\\assets\\emotes\\"
                     .. smileys[alias]
                     .. ".tga:"
                     .. size

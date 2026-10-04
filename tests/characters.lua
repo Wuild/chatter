@@ -4,7 +4,7 @@ local addon = {}
 assert(loadfile("tests/support/locale.lua"))(addon)
 
 local function load(name)
-    assert(loadfile("scripts/" .. name .. ".lua"))("Chatter", addon)
+    assert(loadfile("scripts/" .. name .. ".lua"))("Whispr", addon)
 end
 
 local function equal(a, b, label)
@@ -117,26 +117,26 @@ addon.Window = {
     RefreshCharacters = function() end,
 }
 
-Chatter = { db = { char = { conversations = {}, sequence = 0 }, global = { maxPeople = 5, maxMessages = 10 } } }
+Whispr = { db = { char = { conversations = {}, sequence = 0 }, global = { maxPeople = 5, maxMessages = 10 } } }
 time = function()
     return 1
 end
 
 load("sounds")
 load("main")
-Chatter:Whisper("CHAT_MSG_WHISPER", "hello", "First Last", "", "", "", "", 0, 0, "", 0, 1, "Player-1-remote")
+Whispr:Whisper("CHAT_MSG_WHISPER", "hello", "First Last", "", "", "", "", 0, 0, "", 0, 1, "Player-1-remote")
 equal(updatedGUID, "Player-1-remote", "whisper event GUID position")
-Chatter:Whisper("CHAT_MSG_WHISPER_INFORM", "reply", "First Last", "", "", "", "", 0, 0, "", 0, 1, "Player-1-self")
+Whispr:Whisper("CHAT_MSG_WHISPER_INFORM", "reply", "First Last", "", "", "", "", 0, 0, "", 0, 1, "Player-1-self")
 equal(updatedGUID, nil, "outgoing sender cannot overwrite remote identity")
-Chatter:WhisperStatus("CHAT_MSG_AFK", "AFK", "First Last")
-local messages = Chatter.db.char.conversations["first last"].messages
+Whispr:WhisperStatus("CHAT_MSG_AFK", "AFK", "First Last")
+local messages = Whispr.db.char.conversations["first last"].messages
 equal(messages[#messages].text, "Away: AFK", "away reply goes into the same conversation")
 equal(messages[#messages].status, "Away", "away reply is labeled as automatic")
 equal(messages[#messages].outgoing, false, "away reply is incoming")
-Chatter:WhisperStatus("CHAT_MSG_DND", "In a dungeon", "First Last")
+Whispr:WhisperStatus("CHAT_MSG_DND", "In a dungeon", "First Last")
 equal(messages[#messages].text, "Do not disturb: In a dungeon", "DND text preserved")
 local count = #messages
-Chatter:WhisperStatus("CHAT_MSG_AFK", "SECRET", "First Last")
+Whispr:WhisperStatus("CHAT_MSG_AFK", "SECRET", "First Last")
 equal(#messages, count, "restricted status text is ignored")
 Characters.Update = actualUpdate
 print("Race/class lookup, partial data, realm identity, and whisper GUID checks passed.")

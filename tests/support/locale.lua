@@ -9,6 +9,6 @@ end
 assert(loadfile("scripts/libraries/LibStub/LibStub.lua"))()
 assert(loadfile("scripts/libraries/AceLocale-3.0/AceLocale-3.0.lua"))()
 assert(loadfile("locales/enUS.lua"))()
-assert(loadfile("scripts/locale.lua"))("Chatter", addon)
+assert(loadfile("scripts/locale.lua"))("Whispr", addon)
 LibStub, GetLocale = savedStub, savedLocale
-assert(loadfile("scripts/filters.lua"))("Chatter", addon)
+assert(loadfile("scripts/filters.lua"))("Whispr", addon)

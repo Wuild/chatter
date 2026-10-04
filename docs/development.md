@@ -1,4 +1,4 @@
-# Developing Chatter
+# Developing Whispr
 
 ## Local checks
 
@@ -28,10 +28,10 @@ For local development only, set `addon.developmentMode = true` in
 `scripts/config.lua` and reload to enable the tools below. Leave it `false` in
 distributed builds. Setting it back to `false` and reloading removes the samples.
 
-- `/chatter screenshots` creates or refreshes ten fictional characters with
+- `/whispr screenshots` creates or refreshes ten fictional characters with
   conversations, class metadata, and unread badges. Real chats remain below them
   in the inbox, so check the visible content before capturing a screenshot.
-- `/chatter demo` creates or resets a 100-message conversation spanning several
+- `/whispr demo` creates or resets a 100-message conversation spanning several
   days, with simulated unread messages for scrolling and layout checks.
 - **Settings → Debug** also provides incoming-message, typing, and notification
   simulations. Notifications follow normal visibility rules and stay hidden
@@ -59,10 +59,10 @@ missing translations fall back to English through AceLocale.
 To add a language:
 
 1. Create `locales/<locale>.lua` and register it with
-   `LibStub("AceLocale-3.0"):NewLocale("Chatter", "<locale>")`.
+   `LibStub("AceLocale-3.0"):NewLocale("Whispr", "<locale>")`.
 2. Return immediately if registration returns nil, then assign translations to
    the existing English keys.
-3. Add the file to `Chatter.toc` after `locales/enUS.lua` and before
+3. Add the file to `Whispr.toc` after `locales/enUS.lua` and before
    `scripts/locale.lua`.
 
 Keep `%s` and `%d` placeholders and their argument order intact. `%H:%M` and

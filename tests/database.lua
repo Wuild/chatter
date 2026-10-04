@@ -43,7 +43,7 @@ CreateFrame = function()
 end
 
 assert(loadfile("scripts/libraries/AceDB-3.0/AceDB-3.0.lua"))()
-assert(loadfile("scripts/database.lua"))("Chatter", addon)
+assert(loadfile("scripts/database.lua"))("Whispr", addon)
 local saved = {
     profileKeys = { ["First - Realm"] = "Custom" },
     profiles = {
@@ -78,7 +78,7 @@ assert(another.char.conversations.friend == nil, "character histories remain sep
 print("Real AceDB global storage, legacy migration, nested copies and character isolation passed.")
 
 local real = { name = "Aeloria", messages = { { text = "Real conversation" } } }
-local current = { conversations = { real = real, sample = { demo = true }, ["demo:chatter"] = { undocked = true } } }
+local current = { conversations = { real = real, sample = { demo = true }, ["demo:whispr"] = { undocked = true } } }
 local other = { conversations = { ["demo:screenshot:aeloria"] = { demo = true }, real = real } }
 addon.Database:RemoveDemoConversations({ char = current, sv = { char = { current = current, other = other } } })
 assert(
@@ -90,7 +90,7 @@ assert(
     "cleanup removes demos across characters"
 )
 assert(
-    current.conversations.sample == nil and current.conversations["demo:chatter"] == nil,
+    current.conversations.sample == nil and current.conversations["demo:whispr"] == nil,
     "legacy and undocked demos removed"
 )
 print("Saved demo cleanup across characters preserves real history.")

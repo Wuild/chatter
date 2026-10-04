@@ -1,6 +1,6 @@
 local name, addon = ...
 
-Chatter = LibStub("AceAddon-3.0"):NewAddon(name, "AceConsole-3.0", "AceEvent-3.0")
+Whispr = LibStub("AceAddon-3.0"):NewAddon(name, "AceConsole-3.0", "AceEvent-3.0")
 -- Developer-only simulations are disabled in normal builds.
 addon.developmentMode = false
 addon.name = name

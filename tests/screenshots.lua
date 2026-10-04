@@ -2,7 +2,7 @@ local addon = {}
 addon.developmentMode = true
 assert(loadfile("tests/support/locale.lua"))(addon)
 local original = { messages = { { text = "Private history" } } }
-Chatter = {
+Whispr = {
     db = { char = { sequence = 1, conversations = { real = original } }, global = { maxPeople = 1, maxMessages = 1 } },
 }
 
@@ -35,12 +35,12 @@ C_ChatInfo = {
     end,
 }
 
-assert(loadfile("scripts/screenshots.lua"))("Chatter", addon)
-assert(loadfile("scripts/main.lua"))("Chatter", addon)
-Chatter:Command("screenshots")
+assert(loadfile("scripts/screenshots.lua"))("Whispr", addon)
+assert(loadfile("scripts/main.lua"))("Whispr", addon)
+Whispr:Command("screenshots")
 assert(invalidated and addon.Window.active == "demo:screenshot:aeloria", "command opens the leading sample")
 local count, unread, ids = 0, 0, {}
-for key, conversation in pairs(Chatter.db.char.conversations) do
+for key, conversation in pairs(Whispr.db.char.conversations) do
     if key ~= "real" then
         count = count + 1
         assert(conversation.demo and #conversation.messages == 8, "fictional local-only conversations")
@@ -62,19 +62,19 @@ end
 
 assert(count == 10 and unread > 0, "ten samples with unread badges")
 assert(
-    Chatter.db.char.conversations.real == original and Chatter.db.global.maxPeople == 1,
+    Whispr.db.char.conversations.real == original and Whispr.db.global.maxPeople == 1,
     "real history and settings preserved"
 )
-local sequence = Chatter.db.char.sequence
-Chatter:Command("screenshots")
-assert(Chatter.db.char.sequence == sequence + 80, "repeat command replaces the same ten samples")
+local sequence = Whispr.db.char.sequence
+Whispr:Command("screenshots")
+assert(Whispr.db.char.sequence == sequence + 80, "repeat command replaces the same ten samples")
 local notice
 
-function Chatter:Print(text)
+function Whispr:Print(text)
     notice = text
 end
 
-Chatter:Send({ active = addon.Window.active, input = {
+Whispr:Send({ active = addon.Window.active, input = {
     GetText = function()
         return "hello"
     end,
@@ -84,16 +84,16 @@ assert(notice, "existing demo send guard protects screenshot samples")
 print("Ten screenshot conversations, metadata, unread state, repeatability and send protection passed.")
 
 addon.developmentMode = false
-local before = Chatter.db.char.sequence
-Chatter:Command("screenshots")
-Chatter:Command("demo")
+local before = Whispr.db.char.sequence
+Whispr:Command("screenshots")
+Whispr:Command("demo")
 addon.Screenshots:Create()
-Chatter:CreateDemoConversation()
-assert(Chatter.db.char.sequence == before, "disabled commands and direct calls cannot recreate demos")
-assert(loadfile("scripts/debug.lua"))("Chatter", addon)
+Whispr:CreateDemoConversation()
+assert(Whispr.db.char.sequence == before, "disabled commands and direct calls cannot recreate demos")
+assert(loadfile("scripts/debug.lua"))("Whispr", addon)
 assert(addon.Debug:Options().hidden, "debug settings hidden in normal builds")
 assert(addon.Debug:Conversation() == nil, "disabled debug cannot create conversations")
 addon.Debug:Incoming()
 addon.Debug:Typing()
 addon.Debug:Notification()
-assert(Chatter.db.char.sequence == before, "disabled debug actions do nothing")
+assert(Whispr.db.char.sequence == before, "disabled debug actions do nothing")

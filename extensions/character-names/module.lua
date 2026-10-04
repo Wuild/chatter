@@ -1,6 +1,6 @@
 local _, addon = ...
 local L = addon.L
-local Names = Chatter:NewExtension("character_names", {
+local Names = Whispr:NewExtension("character_names", {
     name = L["Character names"],
     version = "1.0.0",
     builtin = true,

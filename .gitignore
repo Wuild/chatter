@@ -20,7 +20,7 @@ __pycache__/
 # Local build outputs and addon packages
 /build/
 /dist/
-/Chatter*.zip
+/Whispr*.zip
 *.log
 
 # Local environment configuration

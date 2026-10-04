@@ -1,8 +1,8 @@
 local addon, entries = {}, {}
 assert(loadfile("tests/support/locale.lua"))(addon)
-assert(loadfile("scripts/actions.lua"))("Chatter", addon)
+assert(loadfile("scripts/actions.lua"))("Whispr", addon)
 local person = { key = "person", name = "First Last-Realm", character = { guid = "Player-1-2" } }
-Chatter = { db = { char = { conversations = { person = person } } } }
+Whispr = { db = { char = { conversations = { person = person } } } }
 local menu = {
     CreateButton = function(_, label, callback)
         local entry = {
@@ -65,13 +65,13 @@ assert(
         and reported[5] == nil,
     "report dialog uses identity and never auto-submits"
 )
-Chatter.db.char.conversations.person = nil
+Whispr.db.char.conversations.person = nil
 invited = nil
 entries["Invite to group"].callback()
 assert(not invited, "stale menu cannot invite removed conversation")
 local id = 7
 local bn = { key = "bnet:test", name = "Test", transport = "bnet" }
-Chatter.db.char.conversations[bn.key] = bn
+Whispr.db.char.conversations[bn.key] = bn
 addon.BattleNet = {
     AccountID = function()
         return id
@@ -97,7 +97,7 @@ assert(invited == 108, "BNet invite resolves current game account")
 entries["Block Battle.net account"].callback()
 assert(ignored[1] == 8 and ignored[2], "BNet block resolves current account")
 print("Header invite, ignore, block, native report dialog and stale target checks passed.")
-Chatter.db.char.conversations[person.key] = person
+Whispr.db.char.conversations[person.key] = person
 UnitPopupSharedUtil.TryCreatePlayerLocation = function()
     return nil
 end
@@ -138,7 +138,7 @@ print("Classic nil-location, explicit report targets and on-demand dialog loadin
 
 addon.History = {
     Get = function(key)
-        return Chatter.db.char.conversations[key]
+        return Whispr.db.char.conversations[key]
     end,
 }
 
@@ -208,4 +208,4 @@ addon.Actions:OpenPlayerMenu(bn.key, appendEntries)
 assert(appended == 3 and registrations == 2, "Battle.net menus also receive conversation actions")
 Menu = nil
 assert(not addon.Actions:OpenPlayerMenu(person.key, appendEntries), "missing extension API uses complete fallback")
-print("Native menu extensions remain scoped to Chatter and preserve fallback support.")
+print("Native menu extensions remain scoped to Whispr and preserve fallback support.")

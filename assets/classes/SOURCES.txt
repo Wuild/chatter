@@ -7,4 +7,4 @@ Source SHA-256: 92f75eb9488dc1b12bc09ed0854eb41ee94c61cbf375961ec43ac9e3c9a77e04
 Extracted with tools/prepare_class_icons.py (requires Pillow).
 The square bevel is cropped; edge-connected dark backgrounds become transparent.
 Colored effects and interior dark detail are preserved. Outputs are 64x64 RGBA TGA.
-Artwork retains Blizzard ownership and is not covered by Chatter's MIT license.
+Artwork retains Blizzard ownership and is not covered by Whispr's MIT license.

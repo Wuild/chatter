@@ -8,7 +8,7 @@ https://creativecommons.org/licenses/by-sa/3.0/
 The upstream project GPL version 2 COPYING and AUTHORS are included unchanged.
 Original PNGs, theme mapping and SVG artwork are retained in source/.
 
-Chatter changes: selects 22 icons, pads their original 24x24 RGBA pixels onto
+Whispr changes: selects 22 icons, pads their original 24x24 RGBA pixels onto
 32x32 transparent canvases, exports uncompressed TGA, and maps 96 classic text
 smileys. No named emoji shortcuts or Unicode conversion are enabled.
 Source artwork and converted artwork retain their upstream licensing.

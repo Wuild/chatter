@@ -8,12 +8,12 @@ function Debug:Conversation()
         return
     end
 
-    local data, key = Chatter.db.char, "demo:chatter"
+    local data, key = Whispr.db.char, "demo:whispr"
     local conversation = data.conversations[key]
     if not conversation then
         conversation = {
             key = key,
-            name = L["Chatter Demo"],
+            name = L["Whispr Demo"],
             demo = true,
             unread = 0,
             messages = {},
@@ -35,11 +35,11 @@ function Debug:Incoming()
     end
 
     local conversation = self:Conversation()
-    local data, window = Chatter.db.char, addon.Window
+    local data, window = Whispr.db.char, addon.Window
     data.sequence = (data.sequence or 0) + 1
     local message = {
         id = data.sequence,
-        text = L["This is a simulated incoming whisper. Hello from Chatter! :)"],
+        text = L["This is a simulated incoming whisper. Hello from Whispr! :)"],
         time = time(),
         outgoing = false,
     }
@@ -54,7 +54,7 @@ function Debug:Incoming()
 
     conversation.unread = math.min(conversation.unread, #conversation.messages)
     window:Refresh(conversation.key)
-    Chatter:PlayMessageSound()
+    Whispr:PlayMessageSound()
     window:Receive(conversation.key)
     if addon.Extensions then
         addon.Extensions:ConversationEvent("MESSAGE_RECEIVED", conversation, { message = message, simulated = true })
@@ -85,9 +85,9 @@ function Debug:Notification()
 
     addon.Notification:Receive({
         key = "preview",
-        name = L["Chatter Demo"],
+        name = L["Whispr Demo"],
         transport = "whisper",
-        message = { text = L["This is a simulated incoming whisper. Hello from Chatter! :)"] },
+        message = { text = L["This is a simulated incoming whisper. Hello from Whispr! :)"] },
     }, true)
 end
 
@@ -109,7 +109,7 @@ function Debug:Options()
                 name = L["Simulate incoming message"],
                 order = 2,
                 width = "full",
-                desc = L["Adds a message to Chatter Demo and uses your normal window, sound and notification visibility settings."],
+                desc = L["Adds a message to Whispr Demo and uses your normal window, sound and notification visibility settings."],
                 func = function()
                     self:Incoming()
                 end,
@@ -134,7 +134,7 @@ function Debug:Options()
                 name = L["Simulate typing"],
                 order = 4,
                 width = "full",
-                desc = L["Opens Chatter Demo and shows typing dots for eight seconds."],
+                desc = L["Opens Whispr Demo and shows typing dots for eight seconds."],
                 func = function()
                     self:Typing()
                 end,
@@ -157,7 +157,7 @@ function Debug:Options()
                 order = 5,
                 width = "full",
                 func = function()
-                    Chatter:CreateDemoConversation()
+                    Whispr:CreateDemoConversation()
                 end,
             },
         },

@@ -5,7 +5,7 @@ addon.Info = Info
 
 function Info.Version()
     local metadata = C_AddOns and C_AddOns.GetAddOnMetadata or GetAddOnMetadata
-    return metadata and metadata(addon.name or "Chatter", "Version") or L["Unknown"]
+    return metadata and metadata(addon.name or "Whispr", "Version") or L["Unknown"]
 end
 
 Info.about = table.concat({
@@ -13,7 +13,7 @@ Info.about = table.concat({
     "",
     L["A dedicated home for your whispers, with saved conversations, smileys and live typing indicators."],
     "",
-    L["Created by Wuild. Your support helps Chatter grow."],
+    L["Created by Wuild. Your support helps Whispr grow."],
 }, "\n")
 
 function Info.Layout(window)
@@ -51,10 +51,10 @@ function Info.Show(window)
         box:EnableMouse(true)
         box.surface = UI.ModalSurface(box)
         box.logo = box:CreateTexture(nil, "ARTWORK")
-        box.logo:SetTexture("Interface\\AddOns\\Chatter\\assets\\chatter-icon.tga")
+        box.logo:SetTexture("Interface\\AddOns\\Whispr\\assets\\whispr-icon.tga")
         box.logo:SetSize(56, 56)
         box.logo:SetPoint("TOPLEFT", 16, -16)
-        box.title = UI.Text(box, "Chatter", "GameFontHighlightLarge")
+        box.title = UI.Text(box, "Whispr", "GameFontHighlightLarge")
         box.title:SetPoint("TOPLEFT", 84, -22)
         box.version = UI.Text(box, "", "GameFontHighlightSmall")
         box.version:SetPoint("TOPLEFT", 84, -48)
@@ -89,10 +89,10 @@ function Info.Show(window)
         end)
 
         box.support.logo = box.support:CreateTexture(nil, "OVERLAY")
-        box.support.logo:SetTexture("Interface\\AddOns\\Chatter\\assets\\icons\\patreon.tga")
+        box.support.logo:SetTexture("Interface\\AddOns\\Whispr\\assets\\icons\\patreon.tga")
         box.support.logo:SetSize(20, 20)
         box.support.logo:SetPoint("LEFT", 14, 0)
-        local supportHint = UI.Text(box, L["Enjoying Chatter? Support its development."], "GameFontHighlightSmall")
+        local supportHint = UI.Text(box, L["Enjoying Whispr? Support its development."], "GameFontHighlightSmall")
         supportHint:SetPoint("BOTTOMLEFT", 20, 64)
         supportHint:SetTextColor(unpack(UI.colors.muted))
         box.shade = shade

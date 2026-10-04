@@ -10,7 +10,7 @@ local function finite(value)
 end
 
 function Window:DefaultSeparateSize()
-    local profile = Chatter.db.global
+    local profile = Whispr.db.global
     local width = finite(profile.separateWindowWidth) and profile.separateWindowWidth or 550
     local height = finite(profile.separateWindowHeight) and profile.separateWindowHeight or 510
     return math.max(360, math.min(1600, width)), math.max(280, math.min(1200, height))
@@ -35,10 +35,10 @@ end
 
 function Window:GeometryRecord()
     if not self.owner then
-        return Chatter.db.char
+        return Whispr.db.char
     end
 
-    return self.geometryKey and Chatter.db.char.conversations[self.geometryKey]
+    return self.geometryKey and Whispr.db.char.conversations[self.geometryKey]
 end
 
 function Window:SaveGeometry()
@@ -100,8 +100,8 @@ function Window:RestoreUndocked()
 
     self.restoredUndocked = true
     local combat = InCombatLockdown and InCombatLockdown()
-    local profile = Chatter.db.global
-    for _, conversation in ipairs(History.Sorted(Chatter.db.char)) do
+    local profile = Whispr.db.global
+    for _, conversation in ipairs(History.Sorted(Whispr.db.char)) do
         if conversation.undocked and not self.detached[conversation.key] then
             local open = conversation.undockedOpen ~= false
             local combatHidden = open and combat and (profile.hideInCombat or profile.noOpenInCombat)
@@ -141,8 +141,8 @@ function Window:CombatChanged(inCombat)
             window.manualCombatOpen = nil
         end
 
-        if inCombat and Chatter.db.global.hideInCombat then
-            local typing = Chatter.db.global.dontHideWhenTyping and window.input and window.input:HasFocus()
+        if inCombat and Whispr.db.global.hideInCombat then
+            local typing = Whispr.db.global.dontHideWhenTyping and window.input and window.input:HasFocus()
             if not typing and not window.manualCombatOpen and window.frame and window.frame:IsShown() then
                 window.hiddenForCombat = true
                 window:HideImmediately()
@@ -219,7 +219,7 @@ end
 
 -- Window focus persists after leaving the mouse, until another window or the
 -- world is clicked. Keyboard focus alone is not a window activation model.
-function Window:SetWindowFocus(focused)
+function Window:SetWindowFocus(focused, preserveComposer)
     if focused then
         if not self.frame or not self.frame:IsShown() or self.closing then
             return
@@ -227,6 +227,11 @@ function Window:SetWindowFocus(focused)
 
         if Window.focusedWindow and Window.focusedWindow ~= self then
             Window.focusedWindow:SetWindowFocus(false)
+        end
+
+        local previousInput = Window:FocusedInput()
+        if previousInput and previousInput ~= self.input then
+            previousInput:ClearFocus()
         end
 
         Window.focusedWindow = self
@@ -243,7 +248,7 @@ function Window:SetWindowFocus(focused)
             Window.focusedWindow = nil
         end
 
-        if self.input then
+        if self.input and not preserveComposer then
             self.input:ClearFocus()
         end
 
@@ -288,7 +293,7 @@ function Window:Escape()
 end
 
 function Window:InstallWindowFocus()
-    self.frame.chatterController = self
+    self.frame.whisprController = self
     -- Visible windows receive Escape even after clicking back into the world.
     -- Frame stacking determines which window receives it first; consume it so
     -- a single press cannot also close windows underneath this one.
@@ -328,27 +333,35 @@ function Window:InstallWindowFocus()
         end
 
         while target do
-            if target.chatterController then
-                target.chatterController:SetWindowFocus(true)
+            if target.whisprController then
+                target.whisprController:SetWindowFocus(true)
                 return
             end
 
             target = target.GetParent and target:GetParent()
         end
 
+        -- A shift-click on a spell, talent or item produces its link after
+        -- GLOBAL_MOUSE_DOWN. Lower the window but keep the insertion target.
+        local preserveComposer = IsModifiedClick and IsModifiedClick("CHATLINK")
         if Window.focusedWindow then
-            Window.focusedWindow:SetWindowFocus(false)
+            Window.focusedWindow:SetWindowFocus(false, preserveComposer)
+        elseif not preserveComposer then
+            local input = Window:FocusedInput()
+            if input then
+                input:ClearFocus()
+            end
         end
     end)
 end
 
 function Window:AnimateOpacity(opacity, duration)
-    if self.opacityTarget == opacity and not (self.fade and Chatter.db.global.animateWindows == false) then
+    if self.opacityTarget == opacity and not (self.fade and Whispr.db.global.animateWindows == false) then
         return
     end
 
     self.opacityTarget = opacity
-    if Chatter.db.global.animateWindows == false then
+    if Whispr.db.global.animateWindows == false then
         self.fade = nil
         self.visualAlpha = opacity
         self.frame:SetAlpha(opacity)
@@ -376,7 +389,7 @@ function Window:StepAnimation()
 end
 
 function Window:Show()
-    if not self.owner and Chatter.db.global.separateWindows then
+    if not self.owner and Whispr.db.global.separateWindows then
         return
     end
 
@@ -401,7 +414,7 @@ function Window:Close()
     end
 
     self:SetWindowFocus(false)
-    if Chatter.db.global.animateWindows == false then
+    if Whispr.db.global.animateWindows == false then
         self:HideImmediately()
         return
     end
@@ -417,7 +430,7 @@ function Window:UpdateBorder()
 
     self.focusBorder:SetShown(self.frame:IsShown())
     local key = self.focused and "focusedBorderColor" or "unfocusedBorderColor"
-    local color = Chatter.db.global[key] or addon.Theme.defaults[key]
+    local color = Whispr.db.global[key] or addon.Theme.defaults[key]
     for _, edge in ipairs(self.focusBorder.edges) do
         edge:SetColorTexture(color[1], color[2], color[3], 1)
     end
@@ -432,7 +445,7 @@ function Window:UpdateOpacity(justOpened)
         return
     end
 
-    local profile = Chatter.db.global
+    local profile = Whispr.db.global
     self:UpdateBorder()
     -- Keep appearance previews readable in either settings window.
     local settingsOpen = (addon.Settings and addon.Settings:IsShown())
@@ -472,7 +485,7 @@ function Window:Layout()
     self.compact = not self.owner and width < 680
     local left = not self.owner and not self.compact and SIDEBAR_WIDTH or 0
     local contentWidth = width - left
-    local composerHeight = math.max(48, (Chatter.db.global.chatFontSize or 14) + 24)
+    local composerHeight = math.max(48, (Whispr.db.global.chatFontSize or 14) + 24)
     self.input:SetHeight(composerHeight)
     if self.input.RefreshFormatting then
         self.input:RefreshFormatting()
@@ -535,7 +548,7 @@ function Window:ConfirmAction(action, key)
         return
     end
 
-    StaticPopupDialogs.CHATTER_CONVERSATION_ACTION = StaticPopupDialogs.CHATTER_CONVERSATION_ACTION
+    StaticPopupDialogs.WHISPR_CONVERSATION_ACTION = StaticPopupDialogs.WHISPR_CONVERSATION_ACTION
         or {
             text = "%s",
             button1 = ACCEPT,
@@ -547,7 +560,7 @@ function Window:ConfirmAction(action, key)
             OnAccept = function(_, data)
                 if
                     History.Identity(data.key) ~= data.conversation
-                    or (Chatter.db.global.showAllCharacters == true) ~= data.allCharacters
+                    or (Whispr.db.global.showAllCharacters == true) ~= data.allCharacters
                 then
                     return
                 end
@@ -557,17 +570,17 @@ function Window:ConfirmAction(action, key)
         }
 
     local question = string.format(
-        Chatter.db.global.showAllCharacters
+        Whispr.db.global.showAllCharacters
                 and L["Delete the conversation with %s from all characters? This removes all of its saved messages."]
             or L["Delete the conversation with %s? This removes its saved messages."],
         conversation.name
     )
-    StaticPopup_Show("CHATTER_CONVERSATION_ACTION", question, nil, {
+    StaticPopup_Show("WHISPR_CONVERSATION_ACTION", question, nil, {
         window = self,
         key = key,
         conversation = History.Identity(key),
         action = action,
-        allCharacters = Chatter.db.global.showAllCharacters == true,
+        allCharacters = Whispr.db.global.showAllCharacters == true,
     })
 end
 
@@ -606,11 +619,11 @@ end
 
 function Window:Open(name, draft, noFocus)
     local inCombat = InCombatLockdown and InCombatLockdown()
-    if noFocus and Chatter.db.global.hideInCombat and inCombat then
+    if noFocus and Whispr.db.global.hideInCombat and inCombat then
         return
     end
 
-    if not self.owner and Chatter.db.global.separateWindows then
+    if not self.owner and Whispr.db.global.separateWindows then
         if self.frame then
             self:HideImmediately()
         end
@@ -628,7 +641,7 @@ function Window:Open(name, draft, noFocus)
             return
         end
 
-        if Chatter.db.global.separateWindows then
+        if Whispr.db.global.separateWindows then
             self:Detach(name, draft, noFocus, true)
             return
         end
@@ -652,11 +665,11 @@ function Window:Open(name, draft, noFocus)
         end
 
         History.EnsureCurrent(key)
-        if not Chatter.db.char.conversations[key] then
-            local data = Chatter.db.char
+        if not Whispr.db.char.conversations[key] then
+            local data = Whispr.db.char
             data.sequence = data.sequence + 1
             data.conversations[key] = { key = key, name = name, updated = data.sequence, unread = 0, messages = {} }
-            History.Trim(data, Chatter.db.global)
+            History.Trim(data, Whispr.db.global)
             if addon.Extensions then
                 addon.Extensions:ConversationEvent("CONVERSATION_CREATED", data.conversations[key])
             end
@@ -684,14 +697,14 @@ function Window:Open(name, draft, noFocus)
 end
 
 function Window:Receive(key)
-    if (Chatter.db.global.hideInCombat or Chatter.db.global.noOpenInCombat) and InCombatLockdown() then
+    if (Whispr.db.global.hideInCombat or Whispr.db.global.noOpenInCombat) and InCombatLockdown() then
         self.combatMessages = self.combatMessages or {}
         self.combatMessages[key] = true
         return
     end
 
     local detached = self.detached[key]
-    local profile = Chatter.db.global
+    local profile = Whispr.db.global
     if profile.autoOpenConversations == false then
         local target = detached or (not profile.separateWindows and self)
         if not target or not target.frame or not target.frame:IsShown() or target.closing then
@@ -703,7 +716,7 @@ function Window:Receive(key)
         detached:Show()
         detached.frame:Raise()
         detached:UpdateOpacity(true)
-    elseif Chatter.db.global.separateWindows then
+    elseif Whispr.db.global.separateWindows then
         self:Open(key, nil, true)
     else
         self:Create()
@@ -729,7 +742,7 @@ function Window:Receive(key)
 end
 
 function Window:SetSeparateMode(enabled)
-    Chatter.db.global.separateWindows = enabled
+    Whispr.db.global.separateWindows = enabled
     if enabled then
         local key = self.active
         local shown = self.frame and self.frame:IsShown()
@@ -754,7 +767,7 @@ function Window:SetSeparateMode(enabled)
                 window.hiddenForCombat = nil
                 window.standalone = nil
                 self.detached[key] = nil
-                local record = Chatter.db.char.conversations[key]
+                local record = Whispr.db.char.conversations[key]
                 if record then
                     record.undocked, record.undockedOpen, record.undockedStandalone = nil, nil, nil
                 end
@@ -838,7 +851,7 @@ function Window:Detach(name, draft, noFocus, standalone, restoreHidden)
         window:Open(name, draft, noFocus)
     end
 
-    record = Chatter.db.char.conversations[key]
+    record = Whispr.db.char.conversations[key]
     if record then
         record.undocked, record.undockedStandalone = true, standalone == true
     end
@@ -851,7 +864,7 @@ function Window:Detach(name, draft, noFocus, standalone, restoreHidden)
 end
 
 function Window:Dock()
-    if Chatter.db.global.separateWindows then
+    if Whispr.db.global.separateWindows then
         return
     end
 
@@ -864,7 +877,7 @@ function Window:Dock()
     owner.drafts[key] = self.input:GetText()
     self:HideImmediately()
     owner.detached[key] = nil
-    local record = Chatter.db.char.conversations[key]
+    local record = Whispr.db.char.conversations[key]
     if record then
         record.undocked, record.undockedOpen, record.undockedStandalone = nil, nil, nil
     end
@@ -926,7 +939,7 @@ function Window:Select(key)
     self.input:SetText(self.drafts[key] or "")
     local conversation = History.Get(key)
     self:MarkRead()
-    addon.Characters.Update(key and Chatter.db.char.conversations[key])
+    addon.Characters.Update(key and Whispr.db.char.conversations[key])
     self.header:SetText(conversation and conversation.name or L["Your whispers"])
     self.subtitle:SetText(conversation and L["Private conversation"] or L["A little closer, even in Azeroth."])
     self.placeholder:SetText(
@@ -1115,7 +1128,7 @@ end
 
 function Window:AddConversationMenuEntries(menu, key, includePlayerActions)
     local conversation = History.Get(key)
-    if not Chatter.db.global.separateWindows then
+    if not Whispr.db.global.separateWindows then
         local move = menu:CreateButton(
             self.owner and L["Dock in main window"] or L["Open in separate window"],
             function()
@@ -1156,13 +1169,13 @@ function Window:AddConversationMenuEntries(menu, key, includePlayerActions)
 end
 
 function Window:UpdateCardTyping(row, conversation)
-    if Chatter.db.global.showMessagePreviews == false then
+    if Whispr.db.global.showMessagePreviews == false then
         return
     end
 
     local text = row.lastMessagePreview or L["New conversation"]
     if self:HasTypingIndicator(conversation.key) then
-        local animated = conversation.demo or Chatter.db.global.animateWindows ~= false
+        local animated = conversation.demo or Whispr.db.global.animateWindows ~= false
         local dots = animated and (math.floor(GetTime() / 0.4) % 3 + 1) or 3
         text = string.format(L["Typing%s"], string.rep(".", dots))
     end
@@ -1186,7 +1199,7 @@ function Window:RefreshList()
         end
     end
 
-    local showPreviews = Chatter.db.global.showMessagePreviews ~= false
+    local showPreviews = Whispr.db.global.showMessagePreviews ~= false
     local rowHeight = showPreviews and 60 or 44
     for index, conversation in ipairs(sorted) do
         local row = self.rows[index]
@@ -1242,7 +1255,7 @@ function Window:RefreshList()
             row.title:SetWidth(134)
             row.title:SetWordWrap(false)
             row.pin = row:CreateTexture(nil, "OVERLAY")
-            row.pin:SetTexture("Interface\\AddOns\\Chatter\\assets\\icons\\pin.tga")
+            row.pin:SetTexture("Interface\\AddOns\\Whispr\\assets\\icons\\pin.tga")
             row.pin:SetSize(14, 14)
             row.pin:SetVertexColor(unpack(UI.colors.muted))
             row.preview = UI.Text(row, "", "GameFontHighlightSmall")
@@ -1272,7 +1285,7 @@ function Window:RefreshList()
                 end
 
                 self:SetDrawer(false)
-                if self.detached and (self.detached[button.key] or Chatter.db.global.separateWindows) then
+                if self.detached and (self.detached[button.key] or Whispr.db.global.separateWindows) then
                     self:Open(button.key)
                 else
                     self:Select(button.key)
@@ -1348,7 +1361,7 @@ function Window:ShowCopyText(value, caption)
         end
 
         Window.urlSequence = (Window.urlSequence or 0) + 1
-        local box = CreateFrame("Frame", "ChatterLinkDialog" .. Window.urlSequence, shade)
+        local box = CreateFrame("Frame", "WhisprLinkDialog" .. Window.urlSequence, shade)
         box.shade = shade
         box:SetSize(420, 190)
         box:SetPoint("CENTER")
@@ -1359,7 +1372,7 @@ function Window:ShowCopyText(value, caption)
         box.logo = box:CreateTexture(nil, "ARTWORK")
         box.logo:SetSize(38, 38)
         box.logo:SetPoint("TOPLEFT", 18, -20)
-        box.logo:SetTexture("Interface\\AddOns\\Chatter\\assets\\icons\\link.tga")
+        box.logo:SetTexture("Interface\\AddOns\\Whispr\\assets\\icons\\link.tga")
         box.logo:SetVertexColor(0.40, 0.76, 0.90, 1)
         box.title = UI.Text(box, L["Copy link"], "GameFontHighlight")
         box.title:SetPoint("TOPLEFT", 70, -20)
@@ -1415,8 +1428,8 @@ function Window:ShowCopyText(value, caption)
     self.url.title:SetText(caption)
     local patreon = addon.Info and value == addon.Info.patreonURL
     self.url.logo:SetTexture(
-        patreon and "Interface\\AddOns\\Chatter\\assets\\icons\\patreon.tga"
-            or "Interface\\AddOns\\Chatter\\assets\\icons\\link.tga"
+        patreon and "Interface\\AddOns\\Whispr\\assets\\icons\\patreon.tga"
+            or "Interface\\AddOns\\Whispr\\assets\\icons\\link.tga"
     )
     self.url.logo:SetVertexColor(patreon and 1 or 0.40, patreon and 0.45 or 0.76, patreon and 0.36 or 0.90, 1)
     self.url.shade:Show()
@@ -1427,7 +1440,7 @@ function Window:ShowCopyText(value, caption)
 end
 
 function Window:Link(link, text, button, inviteKey)
-    if link:match("^chatterkeyword:") or link:match("^chatterinvite:") then
+    if link:match("^whisprkeyword:") or link:match("^whisprinvite:") then
         if addon.KeywordActions then
             addon.KeywordActions:Click(self, link, button, inviteKey)
         end
@@ -1435,7 +1448,7 @@ function Window:Link(link, text, button, inviteKey)
         return
     end
 
-    local encoded = link:match("^chatterurl:(.*)$")
+    local encoded = link:match("^whisprurl:(.*)$")
     if encoded then
         local url = Format.Decode(encoded)
         if not url then
@@ -1450,7 +1463,7 @@ end
 
 local function setMessageOpacity(bubble, message)
     local target = message.outgoing and (message.pending and 0.65 or message.unconfirmed and 0.4) or 1
-    if bubble.messageID ~= message.id or Chatter.db.global.animateWindows == false then
+    if bubble.messageID ~= message.id or Whispr.db.global.animateWindows == false then
         bubble.deliveryFade = nil
         bubble.deliveryAlpha, bubble.deliveryTarget = target, target
         bubble:SetAlpha(target)
@@ -1604,7 +1617,7 @@ local function measureMessage(bubble, message, conversation, maxWidth, grouped)
     local classFile = conversation.character and conversation.character.classFile
     if message.outgoing then
         classFile = nil
-        local currentCharacter = Chatter.db.keys and Chatter.db.keys.char or "current"
+        local currentCharacter = Whispr.db.keys and Whispr.db.keys.char or "current"
         if not message.sourceCharacter or message.sourceCharacter == currentCharacter then
             if UnitClass then
                 local _, playerClass = UnitClass("player")
@@ -1614,13 +1627,13 @@ local function measureMessage(bubble, message, conversation, maxWidth, grouped)
     end
 
     local coords = classFile and CLASS_ICON_TCOORDS and CLASS_ICON_TCOORDS[classFile]
-    local iconsEnabled = Chatter.db.global.showMessageClassIcons ~= false
+    local iconsEnabled = Whispr.db.global.showMessageClassIcons ~= false
     local showClass = iconsEnabled and not message.status and coords ~= nil
     local showBattleNet = iconsEnabled
         and not message.status
         and not message.outgoing
         and conversation.transport == "bnet"
-    local right = message.outgoing and Chatter.db.global.outgoingOnRight ~= false
+    local right = message.outgoing and Whispr.db.global.outgoingOnRight ~= false
     if bubble.classIcon then
         bubble.classIcon:SetShown(not grouped and (showClass or showBattleNet))
         bubble.classIcon:ClearAllPoints()
@@ -1646,7 +1659,7 @@ local function measureMessage(bubble, message, conversation, maxWidth, grouped)
         (
             message.status and L["Auto-reply"]
             or (message.outgoing and (message.sourceCharacter or L["You"]) or conversation.name)
-        ) .. (Chatter.db.global.timestamps and ("  ·  " .. date(L["%H:%M"], message.time)) or "")
+        ) .. (Whispr.db.global.timestamps and ("  ·  " .. date(L["%H:%M"], message.time)) or "")
     )
     local textTop = grouped and 8 or math.max(30, math.ceil(bubble.meta:GetStringHeight()) + 20)
     bubble.bodyTop = textTop - 7
@@ -1810,7 +1823,7 @@ function Window:UpdateVisibleMessages()
                 end
 
                 bubble:ClearAllPoints()
-                local right = message.outgoing and Chatter.db.global.outgoingOnRight ~= false
+                local right = message.outgoing and Whispr.db.global.outgoingOnRight ~= false
                 bubble:SetPoint(
                     right and "TOPRIGHT" or "TOPLEFT",
                     scroll.content,
@@ -1889,7 +1902,7 @@ function Window:RefreshMessages(forceBottom)
     local measure = self.messageMeasure
     local rows, previousDay = {}, nil
     local y, anchorY = 10, nil
-    self.messageIconGutter = Chatter.db.global.showMessageClassIcons ~= false and 34 or 0
+    self.messageIconGutter = Whispr.db.global.showMessageClassIcons ~= false and 34 or 0
     local maxWidth = math.max(146, scroll:GetWidth() - 16 - self.messageIconGutter)
     self.messageMaxWidth = maxWidth
     for messageIndex = first, #messages do
@@ -2034,7 +2047,7 @@ function Window:UpdateTyping()
 
     if shown then
         for index, dot in ipairs(self.typingBadge.dots) do
-            local alpha = not demo and Chatter.db.global.animateWindows == false and 1
+            local alpha = not demo and Whispr.db.global.animateWindows == false and 1
                 or (0.3 + 0.7 * (math.sin(GetTime() * 6 - index * 0.8) + 1) / 2)
             dot:SetAlpha(alpha)
         end
@@ -2051,7 +2064,7 @@ function Window:Create()
     end
 
     Window.frameSequence = (Window.frameSequence or 0) + 1
-    local frameName = self.owner and ("ChatterConversation" .. Window.frameSequence) or "ChatterWindow"
+    local frameName = self.owner and ("WhisprConversation" .. Window.frameSequence) or "WhisprWindow"
     local frame = CreateFrame("Frame", frameName, UIParent)
     local left = self.owner and 0 or SIDEBAR_WIDTH
     local width, height = 800, 510
@@ -2128,7 +2141,7 @@ function Window:Create()
 
         self.closing = nil
         self.opacityTarget = nil
-        self.visualAlpha = Chatter.db.global.animateWindows == false and (Chatter.db.global.windowOpacity or 1) or 0
+        self.visualAlpha = Whispr.db.global.animateWindows == false and (Whispr.db.global.windowOpacity or 1) or 0
         frame:SetAlpha(self.visualAlpha)
         self:UpdateVisibleMessages()
         self:MarkRead()
@@ -2178,9 +2191,9 @@ function Window:Create()
 
     self.brandIcon = titlebar:CreateTexture(nil, "ARTWORK")
     self.brandIcon:SetSize(20, 20)
-    self.brandIcon:SetTexture("Interface\\AddOns\\Chatter\\assets\\chatter-icon.tga")
+    self.brandIcon:SetTexture("Interface\\AddOns\\Whispr\\assets\\whispr-icon.tga")
     self.brandIcon:SetPoint("LEFT", 12, 0)
-    local brand = UI.Text(titlebar, "Chatter", "GameFontHighlightLarge")
+    local brand = UI.Text(titlebar, "Whispr", "GameFontHighlightLarge")
     self.brand = brand
     brand:SetPoint("LEFT", self.brandIcon, "RIGHT", 7, 0)
     local dot = CreateFrame("Frame", nil, titlebar)
@@ -2197,7 +2210,7 @@ function Window:Create()
 
     close:SetPoint("RIGHT", -8, 0)
     self.settingsButton = UI.IconButton(titlebar, "settings", L["Settings"], 24, function()
-        Chatter:ShowSettings()
+        Whispr:ShowSettings()
     end)
 
     self.settingsButton:SetPoint("RIGHT", close, "LEFT", -6, 0)
@@ -2209,7 +2222,7 @@ function Window:Create()
     self.infoButton:SetPoint("RIGHT", self.settingsButton, "LEFT", -6, 0)
     self.infoButton:HookScript("OnEnter", function(button)
         GameTooltip:SetOwner(button, "ANCHOR_RIGHT")
-        GameTooltip:SetText(L["About Chatter"])
+        GameTooltip:SetText(L["About Whispr"])
         GameTooltip:Show()
     end)
 
@@ -2240,7 +2253,7 @@ function Window:Create()
     self.search:SetTextInsets(32, 30, 0, 0)
     self.search:SetMaxBytes(100)
     local searchIcon = self.search:CreateTexture(nil, "ARTWORK")
-    searchIcon:SetTexture("Interface\\AddOns\\Chatter\\assets\\icons\\search.tga")
+    searchIcon:SetTexture("Interface\\AddOns\\Whispr\\assets\\icons\\search.tga")
     searchIcon:SetSize(14, 14)
     searchIcon:SetPoint("LEFT", 10, 0)
     searchIcon:SetVertexColor(unpack(UI.colors.muted))
@@ -2264,7 +2277,7 @@ function Window:Create()
     end)
 
     local clearIcon = self.searchClear:CreateTexture(nil, "OVERLAY")
-    clearIcon:SetTexture("Interface\\AddOns\\Chatter\\assets\\icons\\close.tga")
+    clearIcon:SetTexture("Interface\\AddOns\\Whispr\\assets\\icons\\close.tga")
     clearIcon:SetSize(14, 14)
     clearIcon:SetPoint("CENTER")
     clearIcon:SetVertexColor(unpack(UI.colors.muted))
@@ -2394,7 +2407,7 @@ function Window:Create()
     for _, key in ipairs({ "report", "block", "invite" }) do
         local actionKey = key
         local button = UI.IconButton(frame, key, "", 24, function()
-            addon.Actions:Run(actionKey, Chatter.db.char.conversations[self.active])
+            addon.Actions:Run(actionKey, Whispr.db.char.conversations[self.active])
             self:RefreshHeaderActions()
         end)
 
@@ -2481,8 +2494,8 @@ function Window:Create()
     end)
 
     self.emoteButton:SetPoint("RIGHT", -14, 0)
-    self.emoteButton:SetShown(Chatter.db.global.smileys == true)
-    self.input:SetTextInsets(14, Chatter.db.global.smileys and 48 or 14, 0, 0)
+    self.emoteButton:SetShown(Whispr.db.global.smileys == true)
+    self.input:SetTextInsets(14, Whispr.db.global.smileys and 48 or 14, 0, 0)
     self.placeholder = UI.Text(self.input, L["Message..."], "GameFontHighlightSmall")
     self.placeholder:SetPoint("LEFT", 14, 0)
     self.placeholder:SetWidth(width - left - 120)
@@ -2498,7 +2511,7 @@ function Window:Create()
             self.emotePicker:Hide()
         end
 
-        Chatter:Send(self)
+        Whispr:Send(self)
     end)
 
     self.input:SetScript("OnEscapePressed", function()

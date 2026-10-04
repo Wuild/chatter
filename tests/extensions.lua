@@ -2,17 +2,17 @@ local addon = {}
 assert(loadfile("tests/support/locale.lua"))(addon)
 
 local function load(name)
-    assert(loadfile("scripts/" .. name .. ".lua"))("Chatter", addon)
+    assert(loadfile("scripts/" .. name .. ".lua"))("Whispr", addon)
 end
 
 local function equal(a, b, label)
     assert(a == b, label .. ": " .. tostring(a) .. " ~= " .. tostring(b))
 end
 
-Chatter = { db = { global = { extensions = {}, chatFontSize = 19, maxMessages = 350 }, char = { conversations = {} } } }
+Whispr = { db = { global = { extensions = {}, chatFontSize = 19, maxMessages = 350 }, char = { conversations = {} } } }
 load("theme")
 load("extensions")
-local api = Chatter.API
+local api = Whispr.API
 local activated, disabled, seen = 0, 0, 0
 local themeID
 assert(api.RegisterExtension("test", {
@@ -55,14 +55,14 @@ equal(message.message.text, "original", "event payload cannot mutate core histor
 local options = addon.Extensions:Options().args.extension_test.args.settings
 options.set({ "maxMessages" }, 4)
 equal(options.get({ "maxMessages" }), 4, "extension controls default to isolated settings")
-equal(Chatter.db.global.maxMessages, 350, "extension option cannot overwrite same-named core preference")
+equal(Whispr.db.global.maxMessages, 350, "extension option cannot overwrite same-named core preference")
 addon.Theme:Apply(themeID)
-equal(Chatter.db.global.accentColor[1], 0.7, "extension preset applied")
+equal(Whispr.db.global.accentColor[1], 0.7, "extension preset applied")
 addon.Extensions:SetEnabled("test", false)
 equal(disabled, 1, "disable cleanup called")
 assert(not addon.Theme:Available(themeID), "disabled extension themes not selectable")
 equal(addon.Theme:CurrentPreset(), "custom", "disabled theme becomes custom while retaining colors")
-equal(Chatter.db.global.accentColor[1], 0.7, "disabling pack does not discard applied colors")
+equal(Whispr.db.global.accentColor[1], 0.7, "disabling pack does not discard applied colors")
 addon.Extensions:Emit("MESSAGE_RECEIVED", message)
 equal(seen, 1, "disabled event hooks removed")
 addon.Extensions:SetEnabled("test", true)
@@ -86,13 +86,13 @@ local palette = { name = "Snapshot", colors = { accentColor = { 0.1, 0.2, 0.3 } 
 assert(api.RegisterTheme("snapshot", palette))
 palette.colors.accentColor[1] = 1
 addon.Theme:Apply("snapshot")
-equal(Chatter.db.global.accentColor[1], 0.1, "registry copies theme colors")
-equal(Chatter.db.global.chatFontSize, 19, "theme preserves font preference")
-equal(Chatter.db.global.maxMessages, 350, "theme preserves retention")
-Chatter.db.global.accentColor[1] = 0.9
+equal(Whispr.db.global.accentColor[1], 0.1, "registry copies theme colors")
+equal(Whispr.db.global.chatFontSize, 19, "theme preserves font preference")
+equal(Whispr.db.global.maxMessages, 350, "theme preserves retention")
+Whispr.db.global.accentColor[1] = 0.9
 equal(addon.Theme:CurrentPreset(), "custom", "manual colors identify custom palette")
 addon.Theme:Apply("snapshot")
-equal(Chatter.db.global.accentColor[1], 0.1, "applied colors do not mutate preset")
+equal(Whispr.db.global.accentColor[1], 0.1, "applied colors do not mutate preset")
 assert(api.RegisterExtension("broken", {
     name = "Broken",
     onEnable = function(context)

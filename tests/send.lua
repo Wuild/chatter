@@ -4,7 +4,7 @@ local addon, timers, filters = {}, {}, {}
 assert(loadfile("tests/support/locale.lua"))(addon)
 
 local function load(name)
-    assert(loadfile("scripts/" .. name .. ".lua"))("Chatter", addon)
+    assert(loadfile("scripts/" .. name .. ".lua"))("Whispr", addon)
 end
 
 local function equal(a, b, label)
@@ -38,12 +38,12 @@ addon.Window = {
 
 addon.Characters = { Update = function() end }
 addon.BattleNet = { Resolve = function() end }
-assert(loadfile("extensions/emoji/emotes.lua"))("Chatter", addon)
-assert(loadfile("extensions/emoji/renderer.lua"))("Chatter", addon)
+assert(loadfile("extensions/emoji/emotes.lua"))("Whispr", addon)
+assert(loadfile("extensions/emoji/renderer.lua"))("Whispr", addon)
 assert(loadfile("tests/support/emoji-filters.lua"))(addon)
 load("format")
 load("history")
-Chatter = {
+Whispr = {
     running = true,
     db = { char = { conversations = {}, sequence = 0 }, global = { maxPeople = 5, maxMessages = 20 } },
 }
@@ -51,7 +51,7 @@ Chatter = {
 addon.Minimap = { Disable = function() end }
 load("sounds")
 load("main")
-local conversation = addon.History.Add(Chatter.db.char, Chatter.db.global, "Friend Name", "hello", false, 1)
+local conversation = addon.History.Add(Whispr.db.char, Whispr.db.global, "Friend Name", "hello", false, 1)
 local input = { text = "send immediately" }
 
 function input:GetText()
@@ -83,11 +83,11 @@ C_ChatInfo = {
     end,
 }
 
-Chatter:Send(window)
+Whispr:Send(window)
 equal(dispatched, true, "send is immediate without a timer")
 equal(#conversation.messages, 2, "pending bubble is immediate")
 equal(conversation.messages[2].pending, true, "pending remains distinct from confirmed")
-Chatter:Whisper("CHAT_MSG_WHISPER_INFORM", "send immediately", "Friend Name")
+Whispr:Whisper("CHAT_MSG_WHISPER_INFORM", "send immediately", "Friend Name")
 equal(#conversation.messages, 2, "confirmation does not duplicate history")
 equal(conversation.messages[2].pending, nil, "server confirms pending bubble")
 for _, callback in ipairs(timers) do
@@ -95,7 +95,7 @@ for _, callback in ipairs(timers) do
 end
 
 equal(conversation.messages[2].unconfirmed, nil, "confirmed message never times out")
-Chatter:InstallChatFilters()
+Whispr:InstallChatFilters()
 equal(
     filters.CHAT_MSG_WHISPER(nil, "CHAT_MSG_WHISPER", "reply", "Friend Name"),
     true,
@@ -107,7 +107,7 @@ equal(
     "unresolved Battle.net message is not hidden"
 )
 equal(filters.CHAT_MSG_SYSTEM, nil, "delivery errors are not filtered")
-Chatter:OnDisable()
+Whispr:OnDisable()
 equal(
     filters.CHAT_MSG_WHISPER(nil, "CHAT_MSG_WHISPER", "reply", "Friend Name"),
     false,
@@ -129,8 +129,8 @@ addon.Extensions = {
 }
 
 print("Immediate sending, pending reconciliation, timeout and safe chat filtering passed.")
-Chatter.running = true
-Chatter.db.global.suppressWhispers = false
+Whispr.running = true
+Whispr.db.global.suppressWhispers = false
 equal(
     filters.CHAT_MSG_WHISPER(nil, "CHAT_MSG_WHISPER", "reply", "Friend Name"),
     false,
@@ -138,7 +138,7 @@ equal(
 )
 local sounds = 0
 PlaySoundFile = function(path, channel)
-    equal(path, "Interface\\AddOns\\Chatter\\assets\\sounds\\soft-ping.ogg", "custom whisper chime")
+    equal(path, "Interface\\AddOns\\Whispr\\assets\\sounds\\soft-ping.ogg", "custom whisper chime")
     equal(channel, "Master", "notification channel")
     sounds = sounds + 1
 end
@@ -147,30 +147,30 @@ InCombatLockdown = function()
     return true
 end
 
-Chatter.db.global.newMessageSound = false -- Old saved setting no longer silences incoming whispers.
-Chatter:Whisper("CHAT_MSG_WHISPER", "combat reply", "Friend Name")
+Whispr.db.global.newMessageSound = false -- Old saved setting no longer silences incoming whispers.
+Whispr:Whisper("CHAT_MSG_WHISPER", "combat reply", "Friend Name")
 equal(sounds, 1, "incoming whisper sounds in combat")
-Chatter:Whisper("CHAT_MSG_WHISPER_INFORM", "outgoing", "Friend Name")
+Whispr:Whisper("CHAT_MSG_WHISPER_INFORM", "outgoing", "Friend Name")
 equal(sounds, 1, "outgoing whispers do not bleep")
 local selectedPath
 PlaySoundFile = function(path)
     selectedPath = path
 end
 
-Chatter.db.global.notificationSound = "linux-bell"
-Chatter:PlayMessageSound(true)
+Whispr.db.global.notificationSound = "linux-bell"
+Whispr:PlayMessageSound(true)
 equal(selectedPath, addon.Sounds:Path("linux-bell"), "preview plays selected sound")
-Chatter.db.global.notificationSound = "missing"
-Chatter:PlayMessageSound()
+Whispr.db.global.notificationSound = "missing"
+Whispr:PlayMessageSound()
 equal(selectedPath, addon.Sounds:Path("linux-message"), "invalid selection falls back")
 
 -- A retained setting from older installations cannot select removed assets.
-Chatter.db.global.boostNotificationVolume = true
-Chatter:PlayMessageSound(true)
+Whispr.db.global.boostNotificationVolume = true
+Whispr:PlayMessageSound(true)
 equal(selectedPath, addon.Sounds:Path("linux-message"), "legacy boost preference uses original sample")
 
 for key in pairs(addon.Sounds.labels) do
-    local path = addon.Sounds:Path(key):gsub("^Interface\\AddOns\\Chatter\\", ""):gsub("\\", "/")
+    local path = addon.Sounds:Path(key):gsub("^Interface\\AddOns\\Whispr\\", ""):gsub("\\", "/")
     assert(not path:find("linux-", 1, true), "sound assets use their picker names")
     assert(not path:find("loud/", 1, true), "all sound choices use original samples")
     local file = assert(io.open(path, "rb"), "missing notification sound: " .. path)
@@ -196,28 +196,37 @@ for _, draft in ipairs({
     (rendered:gsub("|cff68bfff", ""):gsub("|r", "")),
 }) do
     input.text = draft
-    Chatter:Send(window)
+    Whispr:Send(window)
     equal(sent, wireEmojis, "all picker emojis send only original text aliases")
     equal(conversation.messages[#conversation.messages].text, wireEmojis, "history stores plain emoji text")
 end
 
 local item = "|cff0070dd|Hitem:123:0:0|h[Item Name]|h|r"
 input.text = item .. " " .. rendered
-Chatter:Send(window)
+Whispr:Send(window)
 equal(sent, item .. " " .. wireEmojis, "valid native item link preserved alongside emoji row")
+for _, link in ipairs({
+    "|cff71d5ff|Hspell:116|h[Frostbolt]|h|r",
+    "|cff4e96f7|Htalent:123:1|h[Talent]|h|r",
+}) do
+    input.text = link
+    Whispr:Send(window)
+    equal(sent, link, "spell and talent links reach whisper transport intact")
+end
+
 local count = #conversation.messages
 local notice
 
-function Chatter:Print(text)
+function Whispr:Print(text)
     notice = text
 end
 
 sent = nil
-input.text = "broken |Hchatterinput:3a29|h"
-Chatter:Send(window)
+input.text = "broken |Hwhisprinput:3a29|h"
+Whispr:Send(window)
 equal(sent, nil, "broken composer escape never reaches chat transport")
 equal(#conversation.messages, count, "invalid draft creates no pending message")
-equal(input.text, "broken |Hchatterinput:3a29|h", "invalid draft retained for editing")
+equal(input.text, "broken |Hwhisprinput:3a29|h", "invalid draft retained for editing")
 assert(notice, "invalid formatting explains why draft was kept")
 print("Full picker emoji row, edited color wrappers, native links and malformed send guard passed.")
 
@@ -229,12 +238,12 @@ PlaySoundFile = function()
     soundCalls = soundCalls + 1
 end
 
-Chatter.db.global.notificationSoundEnabled = false
-Chatter:PlayMessageSound()
+Whispr.db.global.notificationSoundEnabled = false
+Whispr:PlayMessageSound()
 equal(soundCalls, 0, "muted notifications make no sound")
-Chatter:PlayMessageSound(true)
+Whispr:PlayMessageSound(true)
 equal(soundCalls, 1, "manual preview still plays while muted")
-Chatter.db.global.notificationSoundEnabled = true
-Chatter:PlayMessageSound()
+Whispr.db.global.notificationSoundEnabled = true
+Whispr:PlayMessageSound()
 equal(soundCalls, 2, "reenabling restores message sound")
 print("Notification sound mute and explicit preview behavior passed.")

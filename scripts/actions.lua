@@ -70,7 +70,7 @@ function Actions:Entries(conversation)
             label = label,
             enabled = not not enabled,
             run = function()
-                if Chatter.db.char.conversations[conversation.key] == conversation then
+                if Whispr.db.char.conversations[conversation.key] == conversation then
                     action()
                 end
             end,
@@ -132,7 +132,7 @@ function Actions:Entries(conversation)
         end
 
         if not ReportFrame or not ReportFrame.InitiateReport or not ReportInfo then
-            Chatter:Print(L["The client report dialog is unavailable."])
+            Whispr:Print(L["The client report dialog is unavailable."])
             return
         end
 
@@ -141,7 +141,7 @@ function Actions:Entries(conversation)
             and UnitPopupSharedUtil.TryCreatePlayerLocation
             and UnitPopupSharedUtil.TryCreatePlayerLocation(fresh)
         if conversation.transport == "bnet" and not location then
-            Chatter:Print(
+            Whispr:Print(
                 L["The client could not resolve this Battle.net report target. Try reporting a recent message in Blizzard chat."]
             )
             return
@@ -149,7 +149,7 @@ function Actions:Entries(conversation)
 
         local info = ReportInfo:CreateReportInfoFromType(Enum.ReportType.Chat)
         if not info then
-            Chatter:Print(L["The client could not create a chat report."])
+            Whispr:Print(L["The client could not create a chat report."])
             return
         end
 
@@ -208,17 +208,17 @@ function Actions:OpenPlayerMenu(key, appendEntries)
         self.menuModifiers = self.menuModifiers or {}
         if not self.menuModifiers[which] then
             Menu.ModifyMenu("MENU_UNIT_" .. which, function(_, menu, data)
-                -- Only extend menus opened by Chatter, never other player menus.
-                if data and data.chatterMenuEntries then
+                -- Only extend menus opened by Whispr, never other player menus.
+                if data and data.whisprMenuEntries then
                     menu:CreateDivider()
-                    data.chatterMenuEntries(menu)
+                    data.whisprMenuEntries(menu)
                 end
             end)
 
             self.menuModifiers[which] = true
         end
 
-        context.chatterMenuEntries = appendEntries
+        context.whisprMenuEntries = appendEntries
     end
 
     if UnitPopup_OpenMenu then

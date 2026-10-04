@@ -17,13 +17,13 @@ local function flush()
 end
 
 local function load(name)
-    assert(loadfile("scripts/" .. name .. ".lua"))("Chatter", addon)
+    assert(loadfile("scripts/" .. name .. ".lua"))("Whispr", addon)
 end
 
-Chatter = {}
+Whispr = {}
 load("theme")
 load("extensions")
-local module = Chatter:NewExtension("example", { name = "Example" })
+local module = Whispr:NewExtension("example", { name = "Example" })
 local initialized, enabled, disabled, received = 0, 0, 0, 0
 module:RegisterDefaults({ count = 2, nested = { amount = 3 }, flag = true })
 
@@ -58,7 +58,7 @@ function module:OnMessage(event, payload)
 end
 
 assert(initialized == 0, "database is not accessed at module declaration")
-Chatter.db = { global = { extensions = {}, extensionSettings = { example = { count = 7, flag = false } } } }
+Whispr.db = { global = { extensions = {}, extensionSettings = { example = { count = 7, flag = false } } } }
 addon.Extensions:Initialize()
 assert(initialized == 1 and enabled == 0, "initialization happens once, before activation")
 assert(
@@ -86,10 +86,10 @@ assert(disabled == 1 and not module:IsEnabled())
 module:Enable()
 addon.Extensions:Emit("MESSAGE_RECEIVED", payload)
 assert(enabled == 2 and initialized == 1 and received == 2, "reenable hooks once without reinitializing")
-assert(Chatter:GetExtension("example") == module and Chatter.API.GetExtension("example") == module)
-assert(Chatter:GetExtension("missing", true) == nil and not pcall(Chatter.GetExtension, Chatter, "missing"))
-assert(not pcall(Chatter.NewExtension, Chatter, "example"), "duplicate module rejected")
-local late = Chatter:NewExtension("late")
+assert(Whispr:GetExtension("example") == module and Whispr.API.GetExtension("example") == module)
+assert(Whispr:GetExtension("missing", true) == nil and not pcall(Whispr.GetExtension, Whispr, "missing"))
+assert(not pcall(Whispr.NewExtension, Whispr, "example"), "duplicate module rejected")
+local late = Whispr:NewExtension("late")
 local lateInit = 0
 
 function late:OnInitialize()
@@ -100,17 +100,17 @@ late:SetEnabledState(false)
 assert(lateInit == 0, "late declaration waits until methods can be defined")
 flush()
 assert(lateInit == 1 and not late:IsEnabled(), "default-disabled modules still initialize")
-Chatter:EnableExtension("late")
+Whispr:EnableExtension("late")
 assert(late:IsEnabled())
-Chatter:DisableExtension("late")
+Whispr:DisableExtension("late")
 assert(not late:IsEnabled())
 local found = {}
-for id, value in Chatter:IterateExtensions() do
+for id, value in Whispr:IterateExtensions() do
     found[id] = value
 end
 
 assert(found.example == module and found.late == late, "module discovery returns objects")
-local broken = Chatter:NewExtension("broken")
+local broken = Whispr:NewExtension("broken")
 local attempts = 0
 
 function broken:OnInitialize()
@@ -127,7 +127,7 @@ end
 
 broken:Enable()
 assert(attempts == 2 and broken:IsEnabled(), "explicit enable retries failed initialization")
-local failing = Chatter:NewExtension("failing")
+local failing = Whispr:NewExtension("failing")
 local cleaned = 0
 
 function failing:OnEnable()
@@ -143,7 +143,7 @@ end
 flush()
 addon.Extensions:Emit("MESSAGE_RECEIVED", payload)
 assert(not failing:IsEnabled() and cleaned == 1 and module:IsEnabled(), "listener failure disables only failing module")
-local selfDisabling = Chatter:NewExtension("self_disabling")
+local selfDisabling = Whispr:NewExtension("self_disabling")
 
 function selfDisabling:OnEnable()
     self:Disable()
@@ -159,10 +159,10 @@ print("Module lifecycle, defaults, discovery, method messages, late loading, ret
 
 -- Exercise new events at their real history and peer-status sources.
 local captured = {}
-local observer = Chatter:NewExtension("observer")
+local observer = Whispr:NewExtension("observer")
 
 function observer:OnEnable()
-    for _, event in ipairs(Chatter.API.GetEvents()) do
+    for _, event in ipairs(Whispr.API.GetEvents()) do
         self:RegisterMessage(event, function(_, name, payload)
             captured[name] = captured[name] or {}
             table.insert(captured[name], payload)
@@ -177,7 +177,7 @@ flush()
 load("history")
 load("typing")
 local data = { sequence = 0, conversations = {} }
-Chatter.db.char = data
+Whispr.db.char = data
 local settings = { maxPeople = 20, maxMessages = 20 }
 local conversation = addon.History.Add(data, settings, "Friend", "original", true, 10, false)
 addon.History.Add(data, settings, "Friend", "second", false, 11, false)
@@ -212,7 +212,7 @@ print("Event discovery, conversation creation, delivery snapshots and typing tra
 
 load("format")
 assert(addon.Format.Message(":)", true) == ":)", "core has no built-in emoji parser")
-local formatter = Chatter:NewExtension("formatter")
+local formatter = Whispr:NewExtension("formatter")
 
 function formatter:OnEnable()
     self:RegisterFilter("FORMAT_MESSAGE_TOKEN", function(_, event, token)
@@ -229,7 +229,7 @@ formatter:UnregisterAllMessages()
 assert(addon.Format.Message("hello", true) == "HELLO", "message cleanup does not remove render filters")
 formatter:Disable()
 assert(addon.Format.Message("hello", true) == "hello", "disable removes render filters")
-local badFilter = Chatter:NewExtension("bad_filter")
+local badFilter = Whispr:NewExtension("bad_filter")
 
 function badFilter:OnEnable()
     self:RegisterFilter("FORMAT_INPUT_TOKEN", function()

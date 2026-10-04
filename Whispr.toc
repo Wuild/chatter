@@ -1,11 +1,11 @@
 ## Interface: 16001, 120100, 11509, 20506, 38002, 40402, 50504
-## Title: Chatter
+## Title: Whispr
 ## Notes: Whisper conversations for Retail, Classic, Anniversary and Forever
 ## Author: Wuild
 ## X-License: MIT
 ## Version: 0.1.0
 ## OptionalDeps: Ace3, LibDataBroker-1.1, LibDBIcon-1.0, LibSharedMedia-3.0, SharedMedia
-## SavedVariables: ChatterSettings
+## SavedVariables: WhisprSettings
 
 scripts\embeds.xml
 locales\enUS.lua

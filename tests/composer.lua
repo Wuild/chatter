@@ -1,13 +1,13 @@
 local addon = {}
 assert(loadfile("tests/support/locale.lua"))(addon)
-assert(loadfile("extensions/emoji/emotes.lua"))("Chatter", addon)
-assert(loadfile("extensions/emoji/renderer.lua"))("Chatter", addon)
+assert(loadfile("extensions/emoji/emotes.lua"))("Whispr", addon)
+assert(loadfile("extensions/emoji/renderer.lua"))("Whispr", addon)
 assert(loadfile("tests/support/emoji-filters.lua"))(addon)
 for _, name in ipairs({ "format", "composer" }) do
-    assert(loadfile("scripts/" .. name .. ".lua"))("Chatter", addon)
+    assert(loadfile("scripts/" .. name .. ".lua"))("Whispr", addon)
 end
 
-Chatter = { db = { global = { smileys = true, chatFontSize = 14 } } }
+Whispr = { db = { global = { smileys = true, chatFontSize = 14 } } }
 
 local function equal(a, b, label)
     assert(a == b, label .. ": " .. tostring(a) .. " ~= " .. tostring(b))
@@ -62,7 +62,7 @@ addon.Composer.Attach(input)
 input:SetText("hello :) https://example.com/:D")
 equal(input:GetText(), "hello :) https://example.com/:D", "display decorations never escape into sent draft")
 assert(input.text:find("|T", 1, true), "smiley rendered in editbox")
-assert(input.text:find("|Hchatterinput:", 1, true), "composer links rendered")
+assert(input.text:find("|Hwhisprinput:", 1, true), "composer links rendered")
 equal(input:GetCursorPosition(), #input:GetText(), "raw caret at end")
 input:SetCursorPosition(6)
 input:Insert("é ")
@@ -142,7 +142,7 @@ equal(input:GetText(), "before after", "middle emoji can be deleted without losi
 print("Backspace removes emoji spacing and links without reinserting deleted text.")
 
 for _, wrapper in ipairs({ "|cffffffff", "" }) do
-    input.text = wrapper .. "|Hchatterinput:3a29|h|Temoji:18|t|h" .. (wrapper ~= "" and "|r" or "") .. " "
+    input.text = wrapper .. "|Hwhisprinput:3a29|h|Temoji:18|t|h" .. (wrapper ~= "" and "|r" or "") .. " "
     input.cursor = #input.text
     equal(input:GetText(), ":) ", "edited display wrapper still decodes emoji")
     equal(input:GetCursorPosition(), 3, "edited wrapper preserves raw caret")

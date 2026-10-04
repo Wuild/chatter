@@ -7,7 +7,7 @@ GetTime = function()
 end
 
 local function load(name)
-    assert(loadfile("scripts/" .. name .. ".lua"))("Chatter", addon)
+    assert(loadfile("scripts/" .. name .. ".lua"))("Whispr", addon)
 end
 
 local function flush()
@@ -283,7 +283,7 @@ C_Timer = {
 }
 
 date = os.date
-Chatter = {
+Whispr = {
     db = {
         char = { conversations = {}, sequence = 0 },
         global = { animateWindows = false, maxPeople = 50, maxMessages = 20, smileys = true, timestamps = true },
@@ -292,8 +292,8 @@ Chatter = {
 
 load("history")
 load("characters")
-assert(loadfile("extensions/emoji/emotes.lua"))("Chatter", addon)
-assert(loadfile("extensions/emoji/renderer.lua"))("Chatter", addon)
+assert(loadfile("extensions/emoji/emotes.lua"))("Whispr", addon)
+assert(loadfile("extensions/emoji/renderer.lua"))("Whispr", addon)
 load("format")
 load("composer")
 load("theme")
@@ -302,13 +302,13 @@ load("info")
 load("actions")
 load("window")
 load("extensions")
-assert(loadfile("extensions/emoji/module.lua"))("Chatter", addon)
-assert(loadfile("extensions/keywords/module.lua"))("Chatter", addon)
+assert(loadfile("extensions/emoji/module.lua"))("Whispr", addon)
+assert(loadfile("extensions/keywords/module.lua"))("Whispr", addon)
 addon.Extensions:Start()
 local Window, History = addon.Window, addon.History
 
 local function add(name, text)
-    local c = History.Add(Chatter.db.char, Chatter.db.global, name, text, false, 1, Window:IsReading(History.Key(name)))
+    local c = History.Add(Whispr.db.char, Whispr.db.global, name, text, false, 1, Window:IsReading(History.Key(name)))
     Window:Refresh(c.key)
     flush()
 end
@@ -325,12 +325,12 @@ equal(Window.following, false, "scrolling away disables follow")
 equal(Window.latest:IsShown(), true, "floating down arrow appears away from bottom")
 add("First Last", "while reading")
 equal(Window.scroll:GetVerticalScroll(), 120, "new messages preserve viewport")
-equal(Chatter.db.char.conversations["first last"].unread, 1, "scrolled-away unread")
+equal(Whispr.db.char.conversations["first last"].unread, 1, "scrolled-away unread")
 Window:Latest()
 equal(Window.following, true, "latest resumes follow")
 equal(Window.latest:IsShown(), false, "floating down arrow hides at bottom")
-equal(Chatter.db.char.conversations["first last"].unread, 0, "latest marks read")
-Chatter.db.global.maxMessages = 11
+equal(Whispr.db.char.conversations["first last"].unread, 0, "latest marks read")
+Whispr.db.global.maxMessages = 11
 Window.scroll:SetVerticalScroll(120)
 local oldSecondY = Window.bubbles[2].y
 add("First Last", "prunes oldest")
@@ -359,11 +359,11 @@ equal(separate.active, "first last", "popout selection retained")
 separate.scroll:SetVerticalScroll(120)
 add("First Last", "background update")
 equal(separate.following, false, "popout follows its own scroll state")
-Chatter.db.global.separateWindows = true
+Whispr.db.global.separateWindows = true
 Window:Open("Third Person")
 flush()
 assert(Window.detached["third person"], "separate-window preference routes new chats")
-Chatter.db.global.separateWindows = false
+Whispr.db.global.separateWindows = false
 load("battlenet")
 local bn = addon.BattleNet.Ensure({ key = "bnet:friend#1234", name = "Friend", battleTag = "Friend#1234" })
 Window:Open(bn.key)
@@ -400,15 +400,15 @@ assert(avatar.icon.texture:find("Battlenet", 1, true), "Battle.net retains its a
 CLASS_ICON_TCOORDS = previousCoords
 
 bn.archived = true
-History.Trim(Chatter.db.char, Chatter.db.global)
+History.Trim(Whispr.db.char, Whispr.db.global)
 equal(bn.archived, nil, "legacy archived conversation is restored")
-assert(Chatter.db.char.conversations[bn.key], "legacy archived history retained")
+assert(Whispr.db.char.conversations[bn.key], "legacy archived history retained")
 Window:Open(bn.key)
 flush()
 Window.input:SetText("delete this draft")
 Window:Delete(bn.key)
 flush()
-equal(Chatter.db.char.conversations[bn.key], nil, "delete removes history")
+equal(Whispr.db.char.conversations[bn.key], nil, "delete removes history")
 equal(Window.drafts[bn.key], nil, "delete removes draft")
 local row = Window.rows[1]
 row.scripts.OnClick(row)
@@ -431,11 +431,11 @@ Window.frame.scripts.OnSizeChanged()
 flush()
 equal(Window.sidebar:IsShown(), true, "wide window restores sidebar")
 equal(Window.drawerToggle:IsShown(), false, "wide window hides drawer button")
-local conversation = Chatter.db.char.conversations[row.key]
+local conversation = Whispr.db.char.conversations[row.key]
 conversation.unread = 7
 Window:RefreshUnread()
 local total = 0
-for _, c in pairs(Chatter.db.char.conversations) do
+for _, c in pairs(Whispr.db.char.conversations) do
     total = total + c.unread
 end
 
@@ -445,14 +445,14 @@ InCombatLockdown = function()
     return combat
 end
 
-Chatter.db.global.noOpenInCombat = true
+Whispr.db.global.noOpenInCombat = true
 Window.frame:Hide()
 Window:Receive(conversation.key)
 equal(Window.frame:IsShown(), false, "combat incoming whispers do not open window")
 Window.frame:Show()
 Window:Receive(conversation.key)
 equal(Window.frame:IsShown(), true, "no-open setting leaves existing window visible")
-Chatter.db.global.hideInCombat = true
+Whispr.db.global.hideInCombat = true
 Window:CombatChanged(true)
 equal(Window.frame:IsShown(), false, "hide setting hides existing window")
 Window:Open(conversation.key)
@@ -469,16 +469,16 @@ StaticPopup_Show = function(_, _, _, data)
 end
 
 Window:ConfirmAction("delete", conversation.key)
-equal(Chatter.db.char.conversations[conversation.key], conversation, "delete waits for confirmation")
-StaticPopupDialogs.CHATTER_CONVERSATION_ACTION.OnAccept(nil, popupData)
+equal(Whispr.db.char.conversations[conversation.key], conversation, "delete waits for confirmation")
+StaticPopupDialogs.WHISPR_CONVERSATION_ACTION.OnAccept(nil, popupData)
 flush()
-equal(Chatter.db.char.conversations[conversation.key], nil, "confirmed delete applies")
+equal(Whispr.db.char.conversations[conversation.key], nil, "confirmed delete applies")
 print("Responsive sidebar, unread badge, combat settings and confirmations passed.")
-Chatter.db.global.hideInCombat = false
-Chatter.db.global.noOpenInCombat = true
+Whispr.db.global.hideInCombat = false
+Whispr.db.global.noOpenInCombat = true
 combat = true
 Window.frame:Hide()
-local deferred = History.Add(Chatter.db.char, Chatter.db.global, "Combat Friend", "during combat", false, 1, false)
+local deferred = History.Add(Whispr.db.char, Whispr.db.global, "Combat Friend", "during combat", false, 1, false)
 Window:Receive(deferred.key)
 equal(Window.frame:IsShown(), false, "held whisper stays hidden during combat")
 combat = false
@@ -555,13 +555,13 @@ LibStub = function(name)
     return name == "LibDBIcon-1.0" and dbIcon or broker
 end
 
-Chatter.db.global.minimapAngle = 123
+Whispr.db.global.minimapAngle = 123
 load("minimap")
 addon.Minimap:Enable()
 equal(addon.Minimap.button:IsShown(), true, "minimap icon enabled")
-equal(dbIcon.db, Chatter.db.global.minimap, "LibDBIcon receives AceDB profile table")
+equal(dbIcon.db, Whispr.db.global.minimap, "LibDBIcon receives AceDB profile table")
 equal(dbIcon.db.minimapPos, 123, "old minimap position migrated")
-equal(Chatter.db.global.minimapAngle, nil, "migration only runs once")
+equal(Whispr.db.global.minimapAngle, nil, "migration only runs once")
 local entries
 MenuUtil = {
     CreateContextMenu = function(_, generate)
@@ -580,14 +580,14 @@ MenuUtil = {
     end,
 }
 
-Chatter.db.global.maxPeople = 50
+Whispr.db.global.maxPeople = 50
 for i = 1, 12 do
-    History.Add(Chatter.db.char, Chatter.db.global, "Recent " .. i, "hi", false, 1, false)
+    History.Add(Whispr.db.char, Whispr.db.global, "Recent " .. i, "hi", false, 1, false)
 end
 
 addon.Minimap:Menu(addon.Minimap.button)
 equal(#entries, 13, "menu has two actions, divider and ten conversations")
-equal(entries[1].label, "Open Chatter", "open window first")
+equal(entries[1].label, "Open Whispr", "open window first")
 equal(entries[2].label, "Settings", "settings second")
 equal(entries[3].divider, true, "divider before recents")
 equal(entries[4].label, "Recent 12 (1)", "newest conversation first with unread")
@@ -595,7 +595,7 @@ equal(entries[13].label, "Recent 3 (1)", "only ten newest conversations")
 entries[4].action()
 flush()
 equal(Window.active, "recent 12", "menu opens matching identity")
-equal(Chatter.db.char.conversations["recent 12"].unread, 0, "menu opening marks read")
+equal(Whispr.db.char.conversations["recent 12"].unread, 0, "menu opening marks read")
 addon.Minimap:Menu(addon.Minimap.button)
 equal(entries[4].label, "Recent 12", "menu reflects cleared unread count")
 addon.Minimap:Disable()
@@ -603,10 +603,10 @@ equal(addon.Minimap.button:IsShown(), false, "minimap icon disabled")
 print("Minimap recent menu and read-state synchronization passed.")
 Window:SetWindowFocus(false)
 Window.frame.mouseOver = false
-Chatter.db.global.fadeWhenIdle = true
-Chatter.db.global.idleOpacity = 0.3
-Chatter.db.global.idleFadeDelay = 0
-Chatter.db.global.windowOpacity = 0.9
+Whispr.db.global.fadeWhenIdle = true
+Whispr.db.global.idleOpacity = 0.3
+Whispr.db.global.idleFadeDelay = 0
+Whispr.db.global.windowOpacity = 0.9
 Window:UpdateOpacity()
 equal(Window.frame.alpha, 0.3, "idle window becomes see-through")
 Window.frame.mouseOver = true
@@ -617,7 +617,7 @@ Window.input:SetFocus()
 Window:UpdateOpacity()
 equal(Window.frame.alpha, 0.9, "typing retains active opacity outside window")
 Window.input:ClearFocus()
-Chatter.db.global.fadeWhenIdle = false
+Whispr.db.global.fadeWhenIdle = false
 Window:UpdateOpacity()
 equal(Window.frame.alpha, 0.9, "idle fade can be disabled")
 local surface = {
@@ -627,13 +627,13 @@ local surface = {
 }
 
 addon.Theme:Paint(surface, "windowColor")
-Chatter.db.global.windowColor = { 0.2, 0.3, 0.4 }
-Chatter.db.global.backgroundOpacity = 0.5
+Whispr.db.global.windowColor = { 0.2, 0.3, 0.4 }
+Whispr.db.global.backgroundOpacity = 0.5
 addon.Theme:Refresh()
 equal(surface.color[1], 0.2, "theme updates already-created surfaces")
 equal(surface.color[4], 0.5, "background opacity applies separately from text")
 print("Live window colors, background transparency and idle focus opacity passed.")
-local person = Chatter.db.char.conversations["recent 12"]
+local person = Whispr.db.char.conversations["recent 12"]
 local invited
 C_PartyInfo = {
     InviteUnit = function(name)
@@ -664,7 +664,7 @@ end
 
 Window:Link("item:123", "item", "LeftButton")
 equal(clicked, "item:123", "item clicks still use native behavior")
-local other = Chatter.db.char.conversations["recent 11"]
+local other = Whispr.db.char.conversations["recent 11"]
 Window:Open(person.key)
 flush()
 assert(Window.headerActions.invite:IsShown(), "active conversation shows quick actions")
@@ -711,14 +711,14 @@ Window.frame:SetSize(720, 440)
 Window.frame:SetScale(1)
 Window.frame.centerX, Window.frame.centerY = 1000, 600
 Window:SaveGeometry()
-equal(Chatter.db.char.window.width, 720, "main width saved in character AceDB")
-equal(Chatter.db.char.window.height, 440, "main height saved")
+equal(Whispr.db.char.window.width, 720, "main width saved in character AceDB")
+equal(Whispr.db.char.window.height, 440, "main height saved")
 popped.frame:SetSize(490, 370)
 popped.frame:SetScale(1)
 popped.frame.centerX, popped.frame.centerY = 1100, 650
 popped:SaveGeometry()
 equal(other.window.width, 490, "popout geometry stored on its conversation")
-equal(Chatter.db.char.window.width, 720, "popout does not overwrite main geometry")
+equal(Whispr.db.char.window.width, 720, "popout does not overwrite main geometry")
 
 local function recreated(owner, key)
     return setmetatable({ rows = {}, bubbles = {}, drafts = {}, following = true, owner = owner, geometryKey = key }, {
@@ -750,7 +750,7 @@ assert(
 UIParent:SetSize(1920, 1080)
 Window.frame:SetWidth(740)
 Window:SaveAllGeometry()
-equal(Chatter.db.char.window.width, 740, "logout flush saves current geometry")
+equal(Whispr.db.char.window.width, 740, "logout flush saves current geometry")
 print("Main/popout geometry persistence, fresh restoration and screen bounds passed.")
 Window.frame:Show()
 addon.Minimap.dataObject.OnClick(addon.Minimap.button, "LeftButton")
@@ -760,14 +760,14 @@ flush()
 equal(Window.frame:IsShown(), true, "minimap left click opens main window")
 entries = nil
 addon.Minimap.dataObject.OnClick(addon.Minimap.button, "RightButton")
-assert(entries and entries[1].label == "Open Chatter", "minimap right click opens menu")
+assert(entries and entries[1].label == "Open Whispr", "minimap right click opens menu")
 equal(Window.frame:IsShown(), true, "right click does not toggle window")
 equal(
     addon.Minimap.dataObject.icon,
-    "Interface\\AddOns\\Chatter\\assets\\chatter-icon.tga",
-    "broker uses custom chatter logo"
+    "Interface\\AddOns\\Whispr\\assets\\whispr-icon.tga",
+    "broker uses custom whispr logo"
 )
-local recent = History.Sorted(Chatter.db.char)[1]
+local recent = History.Sorted(Whispr.db.char)[1]
 Window:Detach(recent.key)
 flush()
 local recentPopout = Window.detached[recent.key]
@@ -781,12 +781,12 @@ print("Minimap left/right clicks, custom logo and main-only toggle passed.")
 
 equal(
     addon.Minimap.button.background.texture,
-    "Interface\\AddOns\\Chatter\\assets\\minimap-background.tga",
+    "Interface\\AddOns\\Whispr\\assets\\minimap-background.tga",
     "minimap backing uses bundled texture"
 )
 equal(addon.Minimap.button.background:IsShown(), true, "minimap backing is visible")
-Chatter.db.global.fadeWhenIdle = true
-Chatter.db.global.idleFadeDelay = 2
+Whispr.db.global.fadeWhenIdle = true
+Whispr.db.global.idleFadeDelay = 2
 Window.input:ClearFocus()
 Window.frame.mouseOver = false
 Window.frame:Hide()
@@ -889,8 +889,8 @@ function methods:CreateAnimationGroup()
     return group
 end
 
-Chatter.db.global.animateWindows = true
-Chatter.db.global.idleFadeDelay = 4
+Whispr.db.global.animateWindows = true
+Whispr.db.global.idleFadeDelay = 4
 Window:HideImmediately()
 Window.input:ClearFocus()
 Window.frame.mouseOver = false
@@ -933,13 +933,13 @@ Window:StepAnimation()
 equal(Window.frame:IsShown(), false, "close hides frame after animation")
 equal(Window.motion, nil, "window transitions never scale message content")
 Window:Show()
-Chatter.db.global.hideInCombat = true
+Whispr.db.global.hideInCombat = true
 Window:CombatChanged(true)
 equal(Window.frame:IsShown(), false, "combat hiding stays immediate")
 print("Opening, closing, idle fades, interrupted close and immediate combat hiding passed.")
-Chatter.db.global.animateWindows = false
-Chatter.db.global.hideInCombat = true
-Chatter.db.global.separateWindows = false
+Whispr.db.global.animateWindows = false
+Whispr.db.global.hideInCombat = true
+Whispr.db.global.separateWindows = false
 if Window.detached[person.key] then
     Window.detached[person.key]:Dock()
 end
@@ -970,9 +970,9 @@ equal(manualPopout.frame:IsShown(), true, "manual popout retains combat override
 print("Manual combat override, incoming suppression and next-combat reset passed.")
 combat = false
 Window:CombatChanged(false)
-Chatter.db.global.separateWindows = false
-local senderA = History.Add(Chatter.db.char, Chatter.db.global, "Sender A", "hello", false, 1, false)
-local senderB = History.Add(Chatter.db.char, Chatter.db.global, "Sender B", "hello", false, 1, false)
+Whispr.db.global.separateWindows = false
+local senderA = History.Add(Whispr.db.char, Whispr.db.global, "Sender A", "hello", false, 1, false)
+local senderB = History.Add(Whispr.db.char, Whispr.db.global, "Sender B", "hello", false, 1, false)
 Window:Open(senderA.key)
 flush()
 Window.input:SetText("draft for A")
@@ -992,8 +992,7 @@ equal(Window.input:HasFocus(), false, "automatic switch does not redirect keyboa
 Window.following = false
 Window:Receive(senderB.key)
 equal(Window.following, false, "same-sender message preserves reading position")
-local bnSender =
-    History.Add(Chatter.db.char, Chatter.db.global, "Bnet Friend", "hi", false, 1, false, "bnet:friend#9876")
+local bnSender = History.Add(Whispr.db.char, Whispr.db.global, "Bnet Friend", "hi", false, 1, false, "bnet:friend#9876")
 bnSender.transport = "bnet"
 Window:Receive(bnSender.key)
 flush()
@@ -1032,10 +1031,10 @@ flush()
 equal(Window.active, senderB.key, "newest queued conversation remains selected after combat")
 print("Incoming conversation selection, preserved drafts/scroll and deferred order passed.")
 -- Isolate sidebar ordering from the earlier controller scenarios.
-Chatter.db.char = { conversations = {}, sequence = 0 }
-Chatter.db.global.separateWindows = false
-Chatter.db.global.animateWindows = false
-Chatter.db.global.hideInCombat = false
+Whispr.db.char = { conversations = {}, sequence = 0 }
+Whispr.db.global.separateWindows = false
+Whispr.db.global.animateWindows = false
+Whispr.db.global.hideInCombat = false
 combat = false
 local inbox = recreated()
 inbox.detached = {}
@@ -1043,7 +1042,7 @@ inbox.popouts = {}
 inbox:Create()
 
 local function seed(name)
-    return History.Add(Chatter.db.char, Chatter.db.global, name, "message", false, 1, false)
+    return History.Add(Whispr.db.char, Whispr.db.global, name, "message", false, 1, false)
 end
 
 local oldest, middle, newest = seed("Oldest"), seed("Middle"), seed("Newest")
@@ -1075,7 +1074,7 @@ inbox:Delete(above.key)
 flush()
 equal(inbox.active, newest.key, "selection skips conversations already in separate windows")
 print("Delete neighbor selection, previous fallback and inactive rows passed.")
-for _, conversation in pairs(Chatter.db.char.conversations) do
+for _, conversation in pairs(Whispr.db.char.conversations) do
     conversation.unread = 0
 end
 
@@ -1166,7 +1165,7 @@ smilePop.input.scripts.OnEscapePressed(smilePop.input)
 equal(smilePop.emotePicker:IsShown(), false, "escape dismisses picker")
 print("Smiley picker, caret insertion, popouts and dismissal checks passed.")
 
-Chatter.db.global.separateWindows = false
+Whispr.db.global.separateWindows = false
 local modeChat = seed("Mode conversation")
 local manualChat = seed("Manual popout")
 Window:Open(manualChat.key)
@@ -1223,16 +1222,16 @@ local encoded = ("https://example.com"):gsub(".", function(char)
     return string.format("%02x", char:byte())
 end)
 
-Window:Link("chatterurl:" .. encoded, nil, "LeftButton")
+Window:Link("whisprurl:" .. encoded, nil, "LeftButton")
 equal(Window.url:GetWidth(), 336, "link dialog fits narrow window")
 equal(Window.url.input:GetText(), "https://example.com", "copy field uses original URL")
 Window.url.close.scripts.OnClick()
 equal(Window.url:IsShown(), false, "visible close icon dismisses link dialog")
 equal(Window.url.input:HasFocus(), false, "dismissal releases copy field focus")
-Window:Link("chatterurl:" .. encoded, nil, "LeftButton")
+Window:Link("whisprurl:" .. encoded, nil, "LeftButton")
 Window.url.input.scripts.OnEscapePressed()
 equal(Window.url:IsShown(), false, "Escape dismisses link dialog")
-Window:Link("chatterurl:" .. encoded, nil, "LeftButton")
+Window:Link("whisprurl:" .. encoded, nil, "LeftButton")
 Window.url.parent.scripts.OnClick()
 equal(Window.url:IsShown(), false, "click outside dismisses link dialog")
 print("Compact link modal, close icon, Escape and outside dismissal passed.")
@@ -1301,7 +1300,7 @@ assert(not Window.bubbles[1].selectable, "message has no editable control or car
 local active = Window.active
 local clicked
 for _, row in ipairs(Window.rows) do
-    if row.key and row.key ~= active and Chatter.db.char.conversations[row.key] then
+    if row.key and row.key ~= active and Whispr.db.char.conversations[row.key] then
         clicked = row
         break
     end
@@ -1328,11 +1327,11 @@ deleteAction()
 Window.ConfirmAction = previousConfirm
 print("Read-only message display and clicked-conversation context menu passed.")
 
-Chatter.db.global.animateWindows = false
-Chatter.db.global.fadeWhenIdle = true
-Chatter.db.global.idleFadeDelay = 4
-Chatter.db.global.windowOpacity = 0.9
-Chatter.db.global.idleOpacity = 0.3
+Whispr.db.global.animateWindows = false
+Whispr.db.global.fadeWhenIdle = true
+Whispr.db.global.idleFadeDelay = 4
+Whispr.db.global.windowOpacity = 0.9
+Whispr.db.global.idleOpacity = 0.3
 Window:Open(modeChat.key)
 flush()
 Window.input:ClearFocus()
@@ -1372,7 +1371,7 @@ equal(focusPop.frame:GetFrameStrata(), "LOW", "background popout stays behind di
 hovered = focusPop.input
 Window.focusEvents.scripts.OnEvent()
 equal(focusPop.focused, true, "click activates separate window")
-equal(Window.focused, nil, "only one Chatter window focused")
+equal(Window.focused, nil, "only one Whispr window focused")
 equal(Window.frame:GetFrameStrata(), "LOW", "previously focused hub drops into background")
 equal(focusPop.frame:GetFrameStrata(), "DIALOG", "clicked popout moves to foreground")
 equal(Window.focusBorder:IsShown(), true, "unfocused window keeps its border")
@@ -1427,7 +1426,7 @@ Window:SetDrawer(false)
 pressKey(Window, "W")
 equal(Window.frame.propagate, true, "normal game keys pass through focused window")
 pressKey(Window, "ESCAPE")
-equal(Window.frame:IsShown(), false, "focused Escape closes Chatter")
+equal(Window.frame:IsShown(), false, "focused Escape closes Whispr")
 equal(unrelated:IsShown(), true, "same Escape cannot close unrelated windows")
 focusPop:Open(manualChat.key)
 flush()
@@ -1464,14 +1463,14 @@ equal(focusPop.frame:IsShown(), false, "Escape closes unfocused popout")
 print("Unfocused windows handle Escape without blocking gameplay keys.")
 
 -- Paging uses saved IDs so appends and retention do not shift its boundary.
-Chatter.db.global.maxMessages = 100
+Whispr.db.global.maxMessages = 100
 local paged
 local dayOne = os.time({ year = 2026, month = 9, day = 30, hour = 12 })
 local dayTwo = os.time({ year = 2026, month = 10, day = 1, hour = 12 })
 for i = 1, 45 do
     paged = History.Add(
-        Chatter.db.char,
-        Chatter.db.global,
+        Whispr.db.char,
+        Whispr.db.global,
         "Paged history",
         "Page message " .. i,
         false,
@@ -1538,7 +1537,7 @@ equal(
 )
 equal(reader.following, false, "paging never jumps to latest")
 local before = reader.scroll:GetVerticalScroll()
-History.Add(Chatter.db.char, Chatter.db.global, "Paged history", "New arrival", false, dayTwo, false)
+History.Add(Whispr.db.char, Whispr.db.global, "Paged history", "New arrival", false, dayTwo, false)
 reader:RefreshMessages()
 flush()
 equal(#loadedMessages(reader), 41, "new arrival retains loaded history")
@@ -1549,7 +1548,7 @@ equal(#loadedMessages(reader), 46, "last page loads only remaining messages")
 reader.scroll:SetVerticalScroll(0)
 flush()
 equal(#loadedMessages(reader), 46, "history exhaustion does not duplicate messages")
-Chatter.db.global.timestamps = false
+Whispr.db.global.timestamps = false
 reader:RefreshMessages()
 flush()
 equal(reader.dateHeaders[1]:IsShown(), true, "dates remain when timestamps disabled")
@@ -1559,8 +1558,8 @@ assert(#reader.dateHeaders <= 1, "unused date headings released after switching"
 reader:Select(paged.key)
 flush()
 equal(#loadedMessages(reader), 20, "returning to conversation starts with latest page")
-Chatter.db.global.maxMessages = 20
-History.Trim(Chatter.db.char, Chatter.db.global)
+Whispr.db.global.maxMessages = 20
+History.Trim(Whispr.db.char, Whispr.db.global)
 reader:RefreshMessages()
 flush()
 equal(#loadedMessages(reader), 20, "retention keeps remaining page visible")
@@ -1593,7 +1592,7 @@ flush()
 equal(deliveryBubble.alpha, 1, "confirmation restores full bubble opacity")
 print("Sending and unconfirmed bubble opacity, sender labels and confirmation restoration passed.")
 
-Chatter.db.global.animateWindows = true
+Whispr.db.global.animateWindows = true
 delivery.pending = true
 reader:RefreshMessages()
 flush()
@@ -1621,7 +1620,7 @@ equal(deliveryBubble.alpha, 1, "confirmation fades to full opacity")
 delivery.pending = true
 reader:RefreshMessages()
 flush()
-Chatter.db.global.animateWindows = false
+Whispr.db.global.animateWindows = false
 reader:RefreshMessages()
 flush()
 equal(deliveryBubble.alpha, 0.65, "disabling animations applies delivery opacity immediately")
@@ -1647,7 +1646,7 @@ assert(
     "badge cannot overlap last message"
 )
 local tallFooter = reader.footer:GetHeight()
-Chatter.db.global.animateWindows = true
+Whispr.db.global.animateWindows = true
 clockTime = 2000
 reader:UpdateTyping()
 local dotAlpha = reader.typingBadge.dots[1].alpha
@@ -1662,9 +1661,9 @@ equal(reader.footer:GetHeight(), tallFooter, "floating indicator leaves footer s
 addon.Typing = nil
 print("Floating typing badge, animated dots and stable footer size passed.")
 
-local demoConversation = Chatter.db.char.conversations[reader.active]
+local demoConversation = Whispr.db.char.conversations[reader.active]
 demoConversation.demo = true
-Chatter.db.global.animateWindows = false
+Whispr.db.global.animateWindows = false
 reader:UpdateTyping()
 flush()
 equal(reader.typingBadge:IsShown(), false, "idle demo hides typing badge")
@@ -1759,7 +1758,7 @@ addon.Typing = {
     end,
 }
 
-Chatter.db.global.animateWindows = true
+Whispr.db.global.animateWindows = true
 clockTime = 2100
 reader:UpdateTyping()
 flush()
@@ -1772,13 +1771,13 @@ remoteTyping = nil
 reader:UpdateTyping()
 flush()
 equal(typingRow.preview:GetText(), preview, "stopping restores original last message")
-Chatter.db.global.showMessagePreviews = false
+Whispr.db.global.showMessagePreviews = false
 remoteTyping = typingRow.key
 reader:RefreshList()
 reader:UpdateTyping()
 flush()
 equal(typingRow.preview:IsShown(), false, "hidden previews remain hidden while typing")
-Chatter.db.global.showMessagePreviews = true
+Whispr.db.global.showMessagePreviews = true
 reader:RefreshList()
 assert(typingRow.preview:GetText():match("^Typing%."), "refresh retains current typing state")
 addon.Typing = nil
@@ -1786,7 +1785,7 @@ reader:UpdateTyping()
 flush()
 print("Conversation card typing animation, inactive chats, preview restoration and visibility setting passed.")
 
-Chatter.db.global.animateWindows = true
+Whispr.db.global.animateWindows = true
 reader:Open(demoConversation.key)
 flush()
 local reopenMessage = demoConversation.messages[#demoConversation.messages]
@@ -1810,12 +1809,12 @@ flush()
 equal(reopenBubble.deliveryFade, nil, "reopening does not replay stale message animation")
 print("Opening keeps stable message scale and cancels stale delivery animations.")
 
-Chatter.db.global.animateWindows = false
+Whispr.db.global.animateWindows = false
 reader:Open(demoConversation.key)
 flush()
 C_AddOns = {
     GetAddOnMetadata = function(name, key)
-        equal(name, "Chatter", "metadata addon name")
+        equal(name, "Whispr", "metadata addon name")
         equal(key, "Version", "metadata key")
         return "0.1.0"
     end,
@@ -1859,10 +1858,10 @@ print("Addon info page, metadata, Patreon copy link, responsive layout and dismi
 
 reader:Open(demoConversation.key)
 flush()
-Chatter.db.global.backgroundOpacity = 0.1
+Whispr.db.global.backgroundOpacity = 0.1
 reader.infoButton.scripts.OnClick()
 flush()
-assert(reader.info.logo.texture:find("chatter-icon.tga", 1, true), "info displays addon logo")
+assert(reader.info.logo.texture:find("whispr-icon.tga", 1, true), "info displays addon logo")
 assert(reader.info.support.logo.texture:find("patreon.tga", 1, true), "support button displays Patreon mark")
 equal(addon.Theme.surfaces[reader.info.surface][3], true, "info surface ignores background transparency")
 reader.info.support.scripts.OnClick()
@@ -1878,25 +1877,25 @@ reader:RefreshMessages()
 flush()
 local alignedBubble = reader.bubbles[visibleBubbles(reader)]
 equal(alignedBubble.lastPoint[1], "TOPRIGHT", "outgoing messages default to right")
-Chatter.db.global.outgoingOnRight = false
+Whispr.db.global.outgoingOnRight = false
 reader:RefreshMessages()
 flush()
 equal(alignedBubble.lastPoint[1], "TOPLEFT", "single-side layout aligns outgoing messages left")
 assert(alignedBubble.meta:GetText():match("^You"), "single-side layout preserves sender label")
-Chatter.db.global.outgoingOnRight = true
+Whispr.db.global.outgoingOnRight = true
 reader:RefreshMessages()
 flush()
 equal(alignedBubble.lastPoint[1], "TOPRIGHT", "split layout restores outgoing alignment")
 print("Outgoing message alignment toggle preserves sender identity and restores split layout.")
 
 -- Walk a large history repeatedly: frames track viewport capacity, not history size.
-Chatter.db.global.maxMessages = 1000
+Whispr.db.global.maxMessages = 1000
 load("selection")
 local stress
 for index = 1, 500 do
     stress = History.Add(
-        Chatter.db.char,
-        Chatter.db.global,
+        Whispr.db.char,
+        Whispr.db.global,
         "Pool stress",
         index % 9 == 0 and string.rep("Wrapped message ", 40) or ("Message " .. index),
         index % 2 == 0,
@@ -1933,7 +1932,7 @@ local function walkHistory()
             )
             equal(
                 bubble.text:GetText(),
-                addon.Format.Message(bubble.row.message.text, Chatter.db.global.smileys, 12, bubble.inviteKey),
+                addon.Format.Message(bubble.row.message.text, Whispr.db.global.smileys, 12, bubble.inviteKey),
                 "reused frame displays assigned message"
             )
         end
@@ -2059,8 +2058,8 @@ typingHub:Create()
 local typingPopout = recreated(typingHub, "typing-exception")
 typingPopout:Create()
 typingHub.popouts.test = typingPopout
-Chatter.db.global.hideInCombat = true
-Chatter.db.global.dontHideWhenTyping = true
+Whispr.db.global.hideInCombat = true
+Whispr.db.global.dontHideWhenTyping = true
 typingHub:Show()
 typingPopout:Show()
 typingHub.input:SetFocus()
@@ -2082,7 +2081,7 @@ equal(typingPopout.frame:IsShown(), true, "finishing typing does not trigger a n
 typingHub:CombatChanged(false)
 typingHub.input:SetFocus()
 typingPopout.input:SetFocus()
-Chatter.db.global.dontHideWhenTyping = false
+Whispr.db.global.dontHideWhenTyping = false
 typingHub:CombatChanged(true)
 equal(typingHub.frame:IsShown(), false, "disabled exception hides focused inbox")
 equal(typingPopout.frame:IsShown(), false, "disabled exception hides focused popout")
@@ -2090,7 +2089,7 @@ typingHub:CombatChanged(false)
 print("Combat entry typing exception, inbox/popouts, unfocused drafts and restoration passed.")
 
 local extensionEvents = {}
-local watcher = Chatter:NewExtension("window_test")
+local watcher = Whispr:NewExtension("window_test")
 
 function watcher:OnEnable()
     for _, event in ipairs({
@@ -2122,14 +2121,14 @@ local deletedKey = reader.active
 reader:Delete(deletedKey)
 flush()
 equal(extensionEvents.CONVERSATION_DELETED.key, deletedKey, "manual deletion event identifies removed conversation")
-assert(not Chatter.db.char.conversations[deletedKey], "deletion event follows history removal")
+assert(not Whispr.db.char.conversations[deletedKey], "deletion event follows history removal")
 watcher:Disable()
 print("Window visibility, raw draft, empty conversation creation and deletion events passed.")
 
 addon.Window = reader
 local newIncoming =
-    History.Add(Chatter.db.char, Chatter.db.global, "Background Friend", "Unread", false, os.time(), false)
-Chatter.db.global.autoOpenConversations = false
+    History.Add(Whispr.db.char, Whispr.db.global, "Background Friend", "Unread", false, os.time(), false)
+Whispr.db.global.autoOpenConversations = false
 reader:HideImmediately()
 reader:Receive(newIncoming.key)
 flush()
@@ -2139,7 +2138,7 @@ reader:Open(demoConversation.key)
 flush()
 reader.input:SetText("draft remains")
 reader.input:SetFocus()
-Chatter.db.global.autoSelectIncoming = false
+Whispr.db.global.autoSelectIncoming = false
 reader:Receive(newIncoming.key)
 flush()
 equal(reader.active, demoConversation.key, "auto-select disabled preserves current conversation")
@@ -2147,17 +2146,17 @@ equal(reader.input:GetText(), "draft remains", "auto-select disabled preserves i
 assert(reader.input:HasFocus(), "auto-select disabled preserves keyboard focus")
 equal(newIncoming.unread, 1, "background conversation remains unread")
 reader:HideImmediately()
-Chatter.db.global.autoOpenConversations = true
+Whispr.db.global.autoOpenConversations = true
 reader:Receive(newIncoming.key)
 flush()
 assert(reader.frame:IsShown(), "auto-open independently opens inbox")
 equal(reader.active, demoConversation.key, "auto-open respects disabled auto-select")
-Chatter.db.global.autoSelectIncoming = true
+Whispr.db.global.autoSelectIncoming = true
 reader:Receive(newIncoming.key)
 flush()
 equal(reader.active, newIncoming.key, "reenabling auto-select restores routing")
-Chatter.db.global.autoOpenConversations = false
-Chatter.db.global.separateWindows = true
+Whispr.db.global.autoOpenConversations = false
+Whispr.db.global.separateWindows = true
 local existingPopouts = 0
 for _ in pairs(reader.popouts) do
     existingPopouts = existingPopouts + 1
@@ -2171,12 +2170,12 @@ for _ in pairs(reader.popouts) do
 end
 
 equal(afterPopouts, existingPopouts, "auto-open disabled creates no separate windows")
-Chatter.db.global.separateWindows = false
+Whispr.db.global.separateWindows = false
 print("Independent automatic opening and main-window selection preferences passed.")
 
-Chatter.db.global.separateWindows = false
-Chatter.db.global.autoOpenConversations = true
-Chatter.db.keys = { char = "Current - Realm" }
+Whispr.db.global.separateWindows = false
+Whispr.db.global.autoOpenConversations = true
+Whispr.db.keys = { char = "Current - Realm" }
 local foreign = {
     sequence = 40,
     conversations = {
@@ -2195,8 +2194,8 @@ for i = 1, 40 do
         { id = i, time = 1700000000 + i, text = "Old message " .. i, outgoing = i % 2 == 0 }
 end
 
-Chatter.db.sv = { char = { ["Current - Realm"] = Chatter.db.char, ["Other - Realm"] = foreign } }
-Chatter.db.global.showAllCharacters = true
+Whispr.db.sv = { char = { ["Current - Realm"] = Whispr.db.char, ["Other - Realm"] = foreign } }
+Whispr.db.global.showAllCharacters = true
 History.Invalidate()
 foreign.conversations["archived friend"].character = { race = "Dwarf", class = "Shaman", classFile = "SHAMAN" }
 CLASS_ICON_TCOORDS = CLASS_ICON_TCOORDS or {}
@@ -2219,7 +2218,7 @@ flush()
 equal(archivedCard().details:GetText(), "Dwarf · Shaman", "offline selection preserves card race/class")
 equal(archivedCard().avatar.icon.texture, classIcon, "offline selection preserves class icon")
 equal(reader.headerAvatar.icon.texture, classIcon, "selected offline header preserves class icon")
-Chatter.db.char.conversations["archived friend"].character = nil
+Whispr.db.char.conversations["archived friend"].character = nil
 History.Invalidate()
 reader:Select("archived friend")
 flush()
@@ -2229,7 +2228,7 @@ reader:LoadOlderMessages()
 flush()
 equal(#loadedMessages(reader), 40, "combined conversation loads older foreign messages")
 equal(
-    #Chatter.db.char.conversations["archived friend"].messages,
+    #Whispr.db.char.conversations["archived friend"].messages,
     0,
     "opening combined history creates only routing metadata"
 )
@@ -2264,10 +2263,10 @@ end
 
 assert(not addon.Settings:IsShown(), "settings starts closed")
 local settingsFrame = frame()
-dialog.OpenFrames.Chatter = { frame = settingsFrame }
+dialog.OpenFrames.Whispr = { frame = settingsFrame }
 assert(addon.Settings:IsShown(), "standard settings is visible")
-Chatter.db.global.fadeWhenIdle = true
-Chatter.db.global.windowOpacity = 0.9
+Whispr.db.global.fadeWhenIdle = true
+Whispr.db.global.windowOpacity = 0.9
 reader.focused = false
 reader.frame.mouseOver = false
 reader.input.focused = false
@@ -2276,9 +2275,9 @@ reader:UpdateOpacity(100)
 equal(reader.frame.alpha, 0.9, "standard settings suppresses chat idle fade")
 settingsFrame:Hide()
 assert(not addon.Settings:IsShown(), "hidden settings is not active")
-dialog.OpenFrames.Chatter = nil
+dialog.OpenFrames.Whispr = nil
 settingsFrame:Show()
-assert(not addon.Settings:IsShown(), "pooled frame reused by another addon is not Chatter settings")
+assert(not addon.Settings:IsShown(), "pooled frame reused by another addon is not Whispr settings")
 print("Standard AceConfig visibility and fade suppression passed.")
 
 local previousTyping = addon.Typing
@@ -2304,13 +2303,13 @@ assert(offlineReader.frame:IsShown(), "offline history can be opened without a d
 addon.Typing = previousTyping
 print("Opening and selecting conversations never probes the recipient with addon whispers.")
 
-Chatter.db.global.separateWindowWidth = 640
-Chatter.db.global.separateWindowHeight = 420
+Whispr.db.global.separateWindowWidth = 640
+Whispr.db.global.separateWindowHeight = 420
 local sizeHub = recreated()
 sizeHub.popouts = {}
 sizeHub.detached = {}
 sizeHub:Create()
-local sizeChat = History.Add(Chatter.db.char, Chatter.db.global, "Sized conversation", "Hello", false, 1, false)
+local sizeChat = History.Add(Whispr.db.char, Whispr.db.global, "Sized conversation", "Hello", false, 1, false)
 local sizePopout = recreated(sizeHub, sizeChat.key)
 sizeHub.popouts[sizeChat.key] = sizePopout
 sizePopout:Create()
@@ -2325,8 +2324,8 @@ savedPopout:Create()
 equal(savedPopout.frame:GetWidth(), 700, "saved per-conversation width overrides default")
 equal(savedPopout.frame:GetHeight(), 460, "saved per-conversation height overrides default")
 local hubWidth, hubHeight = sizeHub.frame:GetWidth(), sizeHub.frame:GetHeight()
-Chatter.db.global.separateWindowWidth = 600
-Chatter.db.global.separateWindowHeight = 380
+Whispr.db.global.separateWindowWidth = 600
+Whispr.db.global.separateWindowHeight = 380
 sizeHub:ApplySeparateSize()
 flush()
 equal(sizePopout.frame:GetWidth(), 600, "apply updates open separate width")
@@ -2336,16 +2335,16 @@ equal(sizeHub.frame:GetHeight(), hubHeight, "apply leaves main window height unc
 equal(sizeChat.window.width, 600, "applied size saved for conversation")
 print("Separate window defaults, saved overrides and applying defaults to open windows passed.")
 
-Chatter.db.global.showAllCharacters = false
-Chatter.db.global.separateWindows = false
-Chatter.db.char = { sequence = 0, conversations = {} }
+Whispr.db.global.showAllCharacters = false
+Whispr.db.global.separateWindows = false
+Whispr.db.char = { sequence = 0, conversations = {} }
 History.Invalidate()
 local dockHub = recreated()
 dockHub.detached = {}
 dockHub.popouts = {}
 
 local function dockChat(name)
-    return History.Add(Chatter.db.char, Chatter.db.global, name, "hello", false, 1, false)
+    return History.Add(Whispr.db.char, Whispr.db.global, name, "hello", false, 1, false)
 end
 
 local dockA, dockB, dockC = dockChat("Dock A"), dockChat("Dock B"), dockChat("Dock C")
@@ -2395,8 +2394,8 @@ equal(dockHub.input:GetText(), "draft for detached B", "docking preserves transf
 print("Undocking filters cards, selects neighbors, preserves drafts and restores cards on docking.")
 
 -- Rebuild controllers against the same saved data to model reload/login.
-local openRecord = Chatter.db.char.conversations[dockA.key]
-local closedRecord = Chatter.db.char.conversations[dockD.key]
+local openRecord = Whispr.db.char.conversations[dockA.key]
+local closedRecord = Whispr.db.char.conversations[dockD.key]
 dockHub.detached[dockA.key]:Show()
 dockHub.detached[dockA.key].frame:SetSize(620, 410)
 dockHub:SaveAllGeometry()
@@ -2418,7 +2417,7 @@ equal(restoredHub.detached[dockA.key], reused, "world reentry does not duplicate
 restoredHub.detached[dockA.key]:Dock()
 flush()
 assert(not openRecord.undocked, "docking clears saved undocked state")
-Chatter.db.global.hideInCombat = true
+Whispr.db.global.hideInCombat = true
 combat = true
 local combatHub = recreated()
 combatHub.detached = {}
@@ -2432,16 +2431,16 @@ combatHub:CombatChanged(false)
 flush()
 assert(combatHub.detached[dockC.key].frame:IsShown(), "combat exit restores previously open undocked window")
 local routing = { key = "routing", name = "Routing", messages = {}, undocked = true, updated = 1 }
-Chatter.db.char.conversations.routing = routing
-History.RemoveEmpty(Chatter.db.char)
-assert(Chatter.db.char.conversations.routing == routing, "empty routing record retains undocked state across cleanup")
+Whispr.db.char.conversations.routing = routing
+History.RemoveEmpty(Whispr.db.char)
+assert(Whispr.db.char.conversations.routing == routing, "empty routing record retains undocked state across cleanup")
 print("Undocked state survives reload, preserves geometry/visibility, clears on docking and respects combat.")
 
 -- Sidebar search filters names without changing the selected chat or drafts.
-Chatter.db.global.maxPeople = 100
-local searchWillow = History.Add(Chatter.db.char, Chatter.db.global, "Search Willow", "hello", false, 1, false)
-local searchRowan = History.Add(Chatter.db.char, Chatter.db.global, "Search Rowan", "hello", false, 2, false)
-local searchLiteral = History.Add(Chatter.db.char, Chatter.db.global, "Search [Mage]", "hello", false, 3, false)
+Whispr.db.global.maxPeople = 100
+local searchWillow = History.Add(Whispr.db.char, Whispr.db.global, "Search Willow", "hello", false, 1, false)
+local searchRowan = History.Add(Whispr.db.char, Whispr.db.global, "Search Rowan", "hello", false, 2, false)
+local searchLiteral = History.Add(Whispr.db.char, Whispr.db.global, "Search [Mage]", "hello", false, 3, false)
 local searchWindow = recreated()
 searchWindow.detached = {}
 searchWindow:Open(searchWillow.key)
@@ -2477,15 +2476,15 @@ CLASS_ICON_TCOORDS = CLASS_ICON_TCOORDS or {}
 CLASS_ICON_TCOORDS.MAGE = { 0, 0.25, 0, 0.25 }
 searchWillow.character = { classFile = "MAGE" }
 History.Invalidate()
-Chatter.db.global.showMessageClassIcons = true
+Whispr.db.global.showMessageClassIcons = true
 searchWindow:RefreshMessages()
 flush()
 assert(searchWindow.bubbles[1].classIcon:IsShown(), "known sender gets a class icon")
-Chatter.db.global.showMessageClassIcons = false
+Whispr.db.global.showMessageClassIcons = false
 searchWindow:RefreshMessages()
 flush()
 assert(not searchWindow.bubbles[1].classIcon:IsShown(), "message icon option hides pooled icons")
-Chatter.db.global.showMessageClassIcons = true
+Whispr.db.global.showMessageClassIcons = true
 searchWillow.character = nil
 History.Invalidate()
 searchWindow:RefreshMessages()
@@ -2500,7 +2499,7 @@ end
 local groupedChat
 for index, stamp in ipairs({ 1000, 1010, 1020, 1030, 1700 }) do
     groupedChat =
-        History.Add(Chatter.db.char, Chatter.db.global, "Grouped Sender", "Message " .. index, index > 2, stamp, false)
+        History.Add(Whispr.db.char, Whispr.db.global, "Grouped Sender", "Message " .. index, index > 2, stamp, false)
 end
 
 groupedChat.character = { classFile = "MAGE" }
@@ -2544,7 +2543,7 @@ end
 
 menuAction("Pin conversation")
 assert(groupedWindow.rows[1].pin:IsShown(), "pinned conversation shows a pin on its card")
-assert(Chatter.db.char.conversations[searchWillow.key].pinned, "pin saved on conversation")
+assert(Whispr.db.char.conversations[searchWillow.key].pinned, "pin saved on conversation")
 equal(History.Sorted(History.DisplayData())[1].key, searchWillow.key, "pinned conversation sorts before newer chats")
 equal(groupedWindow.active, groupedChat.key, "pinning does not change active conversation")
 menuAction("Unpin conversation")
@@ -2554,7 +2553,7 @@ for _, row in ipairs(groupedWindow.rows) do
     end
 end
 
-assert(not Chatter.db.char.conversations[searchWillow.key].pinned, "unpin clears saved preference")
+assert(not Whispr.db.char.conversations[searchWillow.key].pinned, "unpin clears saved preference")
 assert(History.Sorted(History.DisplayData())[1].key ~= searchWillow.key, "unpin restores recency ordering")
 local crop = {
     SetTexture = function() end,
@@ -2567,7 +2566,7 @@ assert(addon.UI.SetClassIcon(crop, "MAGE"), "class atlas exists")
 assert(crop.coords[1] == 0.1 and crop.coords[2] == 0.9, "bundled icon uses transparent art without the original frame")
 print("Grouped message headers, centered text, cropped class icons and saved conversation pinning passed.")
 
-local shortChat = History.Add(Chatter.db.char, Chatter.db.global, "Long Header Name", "yes?", false, 2000, false)
+local shortChat = History.Add(Whispr.db.char, Whispr.db.global, "Long Header Name", "yes?", false, 2000, false)
 local shortWindow = recreated()
 shortWindow:Open(shortChat.key)
 flush()
@@ -2579,7 +2578,7 @@ equal(
     "short text gets padding without a minimum-width box"
 )
 assert(shortBubble.bodyLeft == 0, "incoming short bubble aligns left")
-History.Add(Chatter.db.char, Chatter.db.global, "Long Header Name", "ok", true, 2001, false)
+History.Add(Whispr.db.char, Whispr.db.global, "Long Header Name", "ok", true, 2001, false)
 shortWindow:RefreshMessages()
 flush()
 local reply = shortWindow.bubbles[#shortWindow.bubbles]
@@ -2605,8 +2604,8 @@ IsMouseButtonDown = function()
     return true
 end
 
-Chatter.db.global.animateWindows = true
-local dragChat = History.Add(Chatter.db.char, Chatter.db.global, "Drag Test", "hello world", true, 2100, false)
+Whispr.db.global.animateWindows = true
+local dragChat = History.Add(Whispr.db.char, Whispr.db.global, "Drag Test", "hello world", true, 2100, false)
 dragChat.messages[1].pending = true
 local dragWindow = recreated()
 dragWindow:Open(dragChat.key)
@@ -2636,7 +2635,7 @@ dragWindow:ReleaseMessageFrames()
 dragWindow:UpdateVisibleMessages()
 dragBubble = dragWindow.bubbles[1]
 dragAndCheck()
-Chatter.db.global.animateWindows = false
+Whispr.db.global.animateWindows = false
 dragWindow:RefreshMessages()
 flush()
 dragAndCheck()
@@ -2650,7 +2649,7 @@ function methods:GetUnboundedStringWidth()
 end
 
 local originalFormatMessage = addon.Format.Message
-local selectionTexture = "|TInterface\\AddOns\\Chatter\\assets\\emotes\\happy.tga:16:16|t"
+local selectionTexture = "|TInterface\\AddOns\\Whispr\\assets\\emotes\\happy.tga:16:16|t"
 addon.Format.Message = function(text, ...)
     if text == "texture selection regression" then
         return "hello " .. selectionTexture
@@ -2659,15 +2658,8 @@ addon.Format.Message = function(text, ...)
     return originalFormatMessage(text, ...)
 end
 
-local richChat = History.Add(
-    Chatter.db.char,
-    Chatter.db.global,
-    "Rich Selection",
-    "texture selection regression",
-    false,
-    2200,
-    false
-)
+local richChat =
+    History.Add(Whispr.db.char, Whispr.db.global, "Rich Selection", "texture selection regression", false, 2200, false)
 dragWindow:Open(richChat.key)
 flush()
 
@@ -2757,4 +2749,38 @@ assert(menuLabels["Delete conversation"] and menuLabels["Close window"], "conver
 assert(not menuLabels["Invite to group"], "native menu does not duplicate fallback player actions")
 Window.headerAvatar.scripts.OnMouseUp(Window.headerAvatar, "RightButton")
 equal(entries[1].label, "Native player action", "header avatar opens the same extended player menu")
-print("Conversation cards and headers open native player menus with Chatter actions appended.")
+print("Conversation cards and headers open native player menus with Whispr actions appended.")
+
+Window:Open(modeChat.key)
+flush()
+Window.input:SetFocus()
+IsModifiedClick = function(kind)
+    return kind == "CHATLINK"
+end
+
+hovered = UIParent
+Window.focusEvents.scripts.OnEvent()
+equal(Window.focused, nil, "link click lowers the chat window")
+equal(Window.frame:GetFrameStrata(), "LOW", "spellbook can remain above chat while linking")
+equal(Window:FocusedInput(), Window.input, "link click preserves composer for delayed insertion")
+Window.focusEvents.scripts.OnEvent()
+equal(Window:FocusedInput(), Window.input, "multiple link clicks keep the same composer")
+IsModifiedClick = function()
+    return false
+end
+
+Window.focusEvents.scripts.OnEvent()
+equal(Window:FocusedInput(), nil, "ordinary outside click releases preserved composer")
+Window.input:SetFocus()
+IsModifiedClick = function()
+    return true
+end
+
+Window.focusEvents.scripts.OnEvent()
+focusPop:Open(manualChat.key)
+flush()
+equal(Window.input:HasFocus(), false, "another conversation cannot retain the old link destination")
+equal(focusPop.input:HasFocus(), true, "separate window owns the new insertion target")
+focusPop:SetWindowFocus(false)
+IsModifiedClick = nil
+print("Shift-click linking preserves input without keeping the window above the spellbook.")

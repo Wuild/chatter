@@ -1,8 +1,8 @@
 -- An invalid event aborts AceAddon OnEnable before whisper hooks are installed.
 local addon = { Window = {}, Minimap = { Enable = function() end } }
 assert(loadfile("tests/support/locale.lua"))(addon)
-assert(loadfile("scripts/history.lua"))("Chatter", addon)
-Chatter = {
+assert(loadfile("scripts/history.lua"))("Whispr", addon)
+Whispr = {
     db = {
         char = {
             conversations = {
@@ -14,7 +14,7 @@ Chatter = {
     },
 }
 
-assert(loadfile("scripts/main.lua"))("Chatter", addon)
+assert(loadfile("scripts/main.lua"))("Whispr", addon)
 local supported = {
     PLAYER_LOGOUT = true,
     PLAYER_REGEN_DISABLED = true,
@@ -38,36 +38,36 @@ local supported = {
 
 local registered, refreshed, hooked = {}, false, false
 
-function Chatter:RegisterEvent(event, handler)
+function Whispr:RegisterEvent(event, handler)
     assert(supported[event], "Unsupported startup event: " .. event)
     registered[event] = handler
 end
 
-function Chatter:InstallChatFilters() end
+function Whispr:InstallChatFilters() end
 
-function Chatter:RefreshCharacters()
+function Whispr:RefreshCharacters()
     refreshed = true
 end
 
-function Chatter:HookWhispers()
+function Whispr:HookWhispers()
     hooked = true
 end
 
-Chatter:OnEnable()
-assert(Chatter.running and refreshed and hooked, "startup must reach metadata refresh and whisper hooks")
+Whispr:OnEnable()
+assert(Whispr.running and refreshed and hooked, "startup must reach metadata refresh and whisper hooks")
 assert(registered.GUILD_ROSTER_UPDATE, "guild metadata still refreshes on roster changes")
 print("Startup event validation and whisper hook installation passed.")
 
 local geometrySaved = false
 addon.Window.SaveAllGeometry = function()
-    assert(Chatter.db.char.conversations.empty, "empty chats remain until persistence cleanup")
+    assert(Whispr.db.char.conversations.empty, "empty chats remain until persistence cleanup")
     geometrySaved = true
 end
 
 registered.PLAYER_LOGOUT()
 assert(geometrySaved, "window geometry saved before history cleanup")
-assert(not Chatter.db.char.conversations.empty, "empty chats discarded on reload/logout")
-assert(Chatter.db.char.conversations.sent and Chatter.db.char.conversations.received, "both message directions persist")
+assert(not Whispr.db.char.conversations.empty, "empty chats discarded on reload/logout")
+assert(Whispr.db.char.conversations.sent and Whispr.db.char.conversations.received, "both message directions persist")
 print("Reload/logout retains message history and discards empty conversations.")
 
 local restored = false

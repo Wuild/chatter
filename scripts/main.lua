@@ -6,7 +6,7 @@ local function secret(...)
     return HasAnySecretValues and HasAnySecretValues(...)
 end
 
-function Chatter:Command(text)
+function Whispr:Command(text)
     text = strtrim(text or "")
     if text == "settings" then
         self:ShowSettings()
@@ -31,15 +31,15 @@ function Chatter:Command(text)
 end
 
 -- Seed directly so testing does not evict real chats or change retention settings.
-function Chatter:CreateDemoConversation()
+function Whispr:CreateDemoConversation()
     if not addon.developmentMode then
         return
     end
 
     local data = self.db.char
-    local key = "demo:chatter"
+    local key = "demo:whispr"
     local created = data.conversations[key] == nil
-    local conversation = { key = key, name = L["Chatter Demo"], demo = true, unread = 0, messages = {} }
+    local conversation = { key = key, name = L["Whispr Demo"], demo = true, unread = 0, messages = {} }
     local samples = {
         L["Hey! Ready for tonight's dungeon run? :)"],
         L["Almost ready, just sorting my bags."],
@@ -93,8 +93,8 @@ function Chatter:CreateDemoConversation()
     end)
 end
 
-function Chatter:OnInitialize()
-    self.db = LibStub("AceDB-3.0"):New("ChatterSettings", addon.defaults, true)
+function Whispr:OnInitialize()
+    self.db = LibStub("AceDB-3.0"):New("WhisprSettings", addon.defaults, true)
     addon.Database:MigrateSettings(self.db)
     if not addon.developmentMode then
         addon.Database:RemoveDemoConversations(self.db)
@@ -111,7 +111,7 @@ function Chatter:OnInitialize()
         end
     end
 
-    self:RegisterChatCommand("chatter", function(text)
+    self:RegisterChatCommand("whispr", function(text)
         self:Command(text)
     end)
 
@@ -123,11 +123,11 @@ function Chatter:OnInitialize()
     addon.Media:Initialize()
 end
 
-function Chatter:ShowSettings()
+function Whispr:ShowSettings()
     addon.Settings:Show()
 end
 
-function Chatter:PlayMessageSound(preview)
+function Whispr:PlayMessageSound(preview)
     if not preview and self.db.global.notificationSoundEnabled == false then
         return
     end
@@ -135,7 +135,7 @@ function Chatter:PlayMessageSound(preview)
     PlaySoundFile(addon.Sounds:Path(self.db.global.notificationSound), "Master")
 end
 
-function Chatter:OnEnable()
+function Whispr:OnEnable()
     self.running = true
     if addon.Extensions then
         addon.Extensions:Start()
@@ -191,7 +191,7 @@ function Chatter:OnEnable()
     self:HookWhispers()
 end
 
-function Chatter:OnDisable()
+function Whispr:OnDisable()
     if addon.Extensions then
         addon.Extensions:Stop()
     end
@@ -204,7 +204,7 @@ function Chatter:OnDisable()
     addon.Minimap:Disable()
 end
 
-function Chatter:InstallChatFilters()
+function Whispr:InstallChatFilters()
     if self.filtersInstalled then
         return
     end
@@ -244,7 +244,7 @@ function Chatter:InstallChatFilters()
     end
 end
 
-function Chatter:BattleNetWhisper(event, text, name, ...)
+function Whispr:BattleNetWhisper(event, text, name, ...)
     if secret(text) or type(text) ~= "string" then
         return
     end
@@ -294,13 +294,13 @@ function Chatter:BattleNetWhisper(event, text, name, ...)
                 key = identity.key,
                 name = identity.name,
                 transport = "bnet",
-                message = Chatter.db.char.conversations[identity.key].messages[#Chatter.db.char.conversations[identity.key].messages],
+                message = Whispr.db.char.conversations[identity.key].messages[#Whispr.db.char.conversations[identity.key].messages],
             })
         end
     end
 end
 
-function Chatter:WhisperStatus(event, text, name)
+function Whispr:WhisperStatus(event, text, name)
     if secret(text, name) or type(text) ~= "string" or type(name) ~= "string" then
         return
     end
@@ -324,7 +324,7 @@ function Chatter:WhisperStatus(event, text, name)
     end
 end
 
-function Chatter:RefreshCharacters()
+function Whispr:RefreshCharacters()
     if self.charactersPending then
         return
     end
@@ -337,7 +337,7 @@ function Chatter:RefreshCharacters()
     end)
 end
 
-function Chatter:Whisper(event, text, name, ...)
+function Whispr:Whisper(event, text, name, ...)
     if secret(text, name) or type(text) ~= "string" or type(name) ~= "string" then
         return
     end
@@ -384,7 +384,7 @@ function Chatter:Whisper(event, text, name, ...)
     end
 end
 
-function Chatter:Send(window)
+function Whispr:Send(window)
     local targetWindow = window or addon.Window
     local conversation = self.db.char.conversations[targetWindow.active]
     local text = targetWindow.input:GetText()
@@ -483,7 +483,7 @@ function Chatter:Send(window)
     targetWindow.input:SetFocus()
 end
 
-function Chatter:RouteEditBox(editBox)
+function Whispr:RouteEditBox(editBox)
     if self.routing or not editBox or not editBox.GetAttribute then
         return
     end
@@ -506,15 +506,15 @@ function Chatter:RouteEditBox(editBox)
         return
     end
 
-    if editBox.chatterPending then
+    if editBox.whisprPending then
         return
     end
 
-    editBox.chatterPending = true
+    editBox.whisprPending = true
     -- Let the client's parser finish resolving the full character name and
     -- removing /w before transferring the remaining message into our composer.
     C_Timer.After(0, function()
-        editBox.chatterPending = nil
+        editBox.whisprPending = nil
         local currentType, currentTarget = editBox:GetAttribute("chatType"), editBox:GetAttribute("tellTarget")
         if secret(currentType, currentTarget) or currentType ~= chatType or currentTarget ~= target then
             return
@@ -552,25 +552,25 @@ function Chatter:RouteEditBox(editBox)
     end)
 end
 
-function Chatter:HookWhispers()
+function Whispr:HookWhispers()
     local function attach(editBox)
         if not editBox then
             return
         end
 
-        if editBox.chatterHooked then
-            Chatter:RouteEditBox(editBox)
+        if editBox.whisprHooked then
+            Whispr:RouteEditBox(editBox)
             return
         end
 
-        editBox.chatterHooked = true
+        editBox.whisprHooked = true
         if editBox.UpdateHeader then
             hooksecurefunc(editBox, "UpdateHeader", function(box)
-                Chatter:RouteEditBox(box)
+                Whispr:RouteEditBox(box)
             end)
         end
 
-        Chatter:RouteEditBox(editBox)
+        Whispr:RouteEditBox(editBox)
     end
 
     if ChatFrameUtil and ChatFrameUtil.ActivateChat then
@@ -673,7 +673,7 @@ function Chatter:HookWhispers()
                     local desiredType = bnet and "BN_WHISPER" or "WHISPER"
                     local target = box:GetAttribute("tellTarget")
                     if secret(target) or target ~= desired or kind ~= desiredType then
-                        box.chatterPending = nil
+                        box.whisprPending = nil
                         box:SetAttribute("chatType", desiredType)
                         box:SetAttribute("tellTarget", desired)
                     end
@@ -681,7 +681,7 @@ function Chatter:HookWhispers()
 
                 attach(box)
                 self:RouteEditBox(box)
-                if box.chatterPending then
+                if box.whisprPending then
                     return
                 end
             end
@@ -712,20 +712,50 @@ function Chatter:HookWhispers()
         end)
     end
 
-    local function insertLink(text)
-        if secret(text) then
+    local pendingLink
+
+    local function insertLink(text, source)
+        if secret(text) or type(text) ~= "string" or text == "" then
             return
         end
 
         local input = Window:FocusedInput()
-        if input then
-            input:Insert(text)
+        if not input then
+            return
         end
+
+        -- Some clients forward the legacy entry point to the modern one.
+        -- Both hooks see that call; insert it only once without replacing
+        -- Blizzard functions or affecting their native return values.
+        if
+            pendingLink
+            and pendingLink.input == input
+            and pendingLink.text == text
+            and pendingLink.source ~= source
+            and pendingLink.result == input:GetText()
+        then
+            return
+        end
+
+        input:Insert(text)
+        local inserted = { input = input, text = text, source = source, result = input:GetText() }
+        pendingLink = inserted
+        C_Timer.After(0, function()
+            if pendingLink == inserted then
+                pendingLink = nil
+            end
+        end)
     end
 
     if ChatFrameUtil and ChatFrameUtil.InsertLink then
-        hooksecurefunc(ChatFrameUtil, "InsertLink", insertLink)
-    elseif ChatEdit_InsertLink then
-        hooksecurefunc("ChatEdit_InsertLink", insertLink)
+        hooksecurefunc(ChatFrameUtil, "InsertLink", function(text)
+            insertLink(text, "modern")
+        end)
+    end
+
+    if ChatEdit_InsertLink then
+        hooksecurefunc("ChatEdit_InsertLink", function(text)
+            insertLink(text, "legacy")
+        end)
     end
 end

@@ -6,14 +6,14 @@ Settings.categories = {
     {
         "general",
         L["General"],
-        L["Settings are shared across all your characters. Choose how Chatter opens and behaves while you play."],
+        L["Settings are shared across all your characters. Choose how Whispr opens and behaves while you play."],
     },
 
     { "messages", L["Messages"], L["Control message formatting, previews and typing indicators."] },
     { "appearance", L["Appearance"], L["Adjust readability, transparency and animations."] },
     { "themes", L["Themes"], L["Choose a palette, then fine-tune individual colors."] },
     { "notifications", L["Notifications"], L["Choose the sound for incoming whispers."] },
-    { "history", L["History"], L["Manage how much conversation history Chatter keeps."] },
+    { "history", L["History"], L["Manage how much conversation history Whispr keeps."] },
     { "extensions", L["Extensions"], L["Enable extensions here. Open their pages in the menu to adjust settings."] },
     { "debug", L["Debug"], L["Test messages, notifications and typing locally."] },
 }
@@ -34,7 +34,7 @@ local function refreshCards()
 end
 
 function Settings:Options()
-    local profile = Chatter.db.global
+    local profile = Whispr.db.global
     local general = {
         showAllCharacters = option(
             "toggle",
@@ -62,7 +62,7 @@ function Settings:Options()
         ),
         suppressWhispers = option(
             "toggle",
-            L["Keep whispers in Chatter"],
+            L["Keep whispers in Whispr"],
             2,
             L["Hide duplicate whispers in normal chat. Delivery errors stay visible."]
         ),
@@ -153,7 +153,7 @@ function Settings:Options()
             "toggle",
             L["Share and show typing indicators"],
             5,
-            L["Only Chatter peers receive typing status. Draft text is never sent."]
+            L["Only Whispr peers receive typing status. Draft text is never sent."]
         ),
     }
 
@@ -294,7 +294,7 @@ function Settings:Options()
 
             set = function(_, v)
                 profile.notificationSound = v
-                Chatter:PlayMessageSound(true)
+                Whispr:PlayMessageSound(true)
             end,
         },
 
@@ -303,7 +303,7 @@ function Settings:Options()
             name = L["Play preview"],
             order = 2,
             func = function()
-                Chatter:PlayMessageSound(true)
+                Whispr:PlayMessageSound(true)
             end,
         },
     }
@@ -400,7 +400,7 @@ function Settings:Options()
 
     local options = {
         type = "group",
-        name = "Chatter",
+        name = "Whispr",
         childGroups = "tree",
         get = function(info)
             return profile[info[#info]]
@@ -433,7 +433,7 @@ function Settings:Options()
                 args = history,
                 set = function(info, v)
                     profile[info[#info]] = v
-                    addon.History.Trim(Chatter.db.char, profile)
+                    addon.History.Trim(Whispr.db.char, profile)
                     addon.Window:Refresh(addon.Window.active)
                 end,
             },
@@ -461,16 +461,16 @@ function Settings:Initialize()
         return
     end
 
-    LibStub("AceConfig-3.0"):RegisterOptionsTable("Chatter", function()
+    LibStub("AceConfig-3.0"):RegisterOptionsTable("Whispr", function()
         return self:Options()
     end)
 
     local dialog = LibStub("AceConfigDialog-3.0")
-    dialog:SetDefaultSize("Chatter", 840, 580)
+    dialog:SetDefaultSize("Whispr", 840, 580)
     -- Keep Blizzard's AddOns list compact; the full tree belongs to our window.
-    LibStub("AceConfig-3.0"):RegisterOptionsTable("ChatterLauncher", {
+    LibStub("AceConfig-3.0"):RegisterOptionsTable("WhisprLauncher", {
         type = "group",
-        name = "Chatter",
+        name = "Whispr",
         args = {
             open = {
                 type = "execute",
@@ -492,13 +492,13 @@ function Settings:Initialize()
         },
     })
 
-    local panel, id = dialog:AddToBlizOptions("ChatterLauncher", "Chatter")
+    local panel, id = dialog:AddToBlizOptions("WhisprLauncher", "Whispr")
     self.panels = { launcher = { frame = panel, id = id } }
 end
 
 function Settings:Refresh()
     if self.panels then
-        LibStub("AceConfigRegistry-3.0"):NotifyChange("Chatter")
+        LibStub("AceConfigRegistry-3.0"):NotifyChange("Whispr")
     end
 end
 
@@ -509,11 +509,11 @@ function Settings:Show()
         focused:SetWindowFocus(false)
     end
 
-    LibStub("AceConfigDialog-3.0"):Open("Chatter")
+    LibStub("AceConfigDialog-3.0"):Open("Whispr")
 end
 
 -- Resolve the active widget each time: AceGUI releases and pools closed frames.
 function Settings:IsShown()
-    local widget = LibStub("AceConfigDialog-3.0").OpenFrames.Chatter
+    local widget = LibStub("AceConfigDialog-3.0").OpenFrames.Whispr
     return widget and widget.frame:IsShown() or false
 end

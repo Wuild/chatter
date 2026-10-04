@@ -160,7 +160,7 @@ end
 
 -- Account view is a projection; source messages remain in their character stores.
 function History.Sources()
-    local db = Chatter.db
+    local db = Whispr.db
     local sources = { { name = db.keys and db.keys.char or "current", data = db.char } }
     if db.global.showAllCharacters then
         for name, data in pairs(db.sv and db.sv.char or {}) do
@@ -178,8 +178,8 @@ function History.Invalidate()
 end
 
 function History.DisplayData()
-    if not Chatter.db.global.showAllCharacters then
-        return Chatter.db.char
+    if not Whispr.db.global.showAllCharacters then
+        return Whispr.db.char
     end
 
     if History.accountView then
@@ -189,7 +189,7 @@ function History.DisplayData()
     local view = { conversations = {} }
     for _, source in ipairs(History.Sources()) do
         for key, conversation in pairs(source.data.conversations) do
-            if source.data == Chatter.db.char or not conversation.demo then
+            if source.data == Whispr.db.char or not conversation.demo then
                 local merged = view.conversations[key]
                 if not merged then
                     merged = {}
@@ -198,7 +198,7 @@ function History.DisplayData()
                     end
 
                     merged.character = copyCharacter(conversation.character)
-                    local current = Chatter.db.char.conversations[key]
+                    local current = Whispr.db.char.conversations[key]
                     merged.pinned = current and current.pinned == true or false
                     merged.messages, merged.unread, merged.updated = {}, 0, 0
                     view.conversations[key] = merged
@@ -231,10 +231,10 @@ function History.Get(key)
 end
 
 function History.EnsureCurrent(key)
-    local data = Chatter.db.char
+    local data = Whispr.db.char
     if data.conversations[key] then
         local conversation = data.conversations[key]
-        if Chatter.db.global.showAllCharacters then
+        if Whispr.db.global.showAllCharacters then
             local displayed = History.Get(key)
             if displayed then
                 mergeIdentity(conversation, displayed.character)

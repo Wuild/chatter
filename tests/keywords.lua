@@ -2,7 +2,7 @@ local addon = {}
 assert(loadfile("tests/support/locale.lua"))(addon)
 
 local function load(name)
-    assert(loadfile("scripts/" .. name .. ".lua"))("Chatter", addon)
+    assert(loadfile("scripts/" .. name .. ".lua"))("Whispr", addon)
 end
 
 local now, combat, inGroup, leader, full = 0, false, false, false, false
@@ -30,7 +30,7 @@ GetNormalizedRealmName = function()
     return "Home"
 end
 
-Chatter = { db = { global = { extensions = {}, inviteLinks = false } } }
+Whispr = { db = { global = { extensions = {}, inviteLinks = false } } }
 local chats = {
     alice = { key = "alice", name = "Alice-Home" },
     stranger = { key = "stranger", name = "Alice-Away" },
@@ -85,13 +85,13 @@ GetGuildRosterInfo = function()
     return "Guildmate-Home"
 end
 
-assert(loadfile("extensions/keywords/module.lua"))("Chatter", addon)
+assert(loadfile("extensions/keywords/module.lua"))("Whispr", addon)
 addon.Extensions:Start()
 local k = addon.KeywordActions
-assert(not k:IsEnabled() and Chatter.db.global.inviteLinks == nil, "legacy disabled preference migrated")
+assert(not k:IsEnabled() and Whispr.db.global.inviteLinks == nil, "legacy disabled preference migrated")
 addon.Extensions:SetEnabled("keywords", true)
 local rendered = addon.Format.Message("INV! invite, (invites) inventory invitation [inv]", true, 14, "alice")
-local _, count = rendered:gsub("|Hchatterkeyword:", "")
+local _, count = rendered:gsub("|Hwhisprkeyword:", "")
 assert(
     count == 4 and rendered:find("|cffffff00", 1, true) and rendered:find("|h[INV]|h", 1, true),
     "yellow bracketed whole-word actions"
@@ -100,7 +100,7 @@ assert(not rendered:find("[[inv]]", 1, true), "existing brackets not doubled")
 assert(addon.Format.Message("inv", true) == "inv", "outgoing messages not parsed")
 for _, text in ipairs({ "https://site/invite", "www.invite.com", "|Hitem:1|h[invite]|h", "|Tinv:12|t" }) do
     assert(
-        addon.Format.Message(text, true, 14, "alice"):find("chatterkeyword", 1, true) == nil,
+        addon.Format.Message(text, true, 14, "alice"):find("whisprkeyword", 1, true) == nil,
         "protected spans do not become keyword actions"
     )
 end

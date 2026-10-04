@@ -38,7 +38,7 @@ GameFontHighlight = {
     end,
 }
 
-Chatter = {
+Whispr = {
     db = {
         global = {
             chatFont = "Game default",
@@ -81,8 +81,8 @@ end
 
 addon.Window = window()
 addon.Window.popouts = { first = window(), second = window() }
-assert(loadfile("scripts/sounds.lua"))("Chatter", addon)
-assert(loadfile("scripts/media.lua"))("Chatter", addon)
+assert(loadfile("scripts/sounds.lua"))("Whispr", addon)
+assert(loadfile("scripts/media.lua"))("Whispr", addon)
 local media, shared = addon.Media, LibStub("LibSharedMedia-3.0")
 media:Initialize()
 assert(media:Fonts()["Friz Quadrata TT"], "includes built-in game font")
@@ -92,21 +92,21 @@ equal(label.path, "Fonts/Game.ttf", "default follows client font")
 equal(label.size, 18, "selected font size")
 equal(label.shadow[4], 0.8, "shadow opacity applied")
 equal(label.y, -1, "shadow enabled")
-Chatter.db.global.chatFont = "Third Party"
+Whispr.db.global.chatFont = "Third Party"
 shared:Register("font", "Third Party", "Interface/AddOns/Other/font.ttf")
 equal(notifications, 1, "late font registration refreshes settings")
 equal(refreshed, 3, "late font registration updates main and all popouts")
 equal(media:Fonts()["Third Party"], "Third Party", "other addon font listed")
 media:Apply(label)
 equal(label.path, "Interface/AddOns/Other/font.ttf", "other addon font selected")
-Chatter.db.global.chatFont = "Missing Font"
-Chatter.db.global.chatShadow = false
+Whispr.db.global.chatFont = "Missing Font"
+Whispr.db.global.chatShadow = false
 media:Apply(label)
 equal(label.path, "Fonts/Game.ttf", "missing font safely falls back")
 equal(label.x, 0, "shadow disabled")
 assert(media:Fonts()["Missing Font"]:find("unavailable"), "missing selection is explained")
 shared:Register("font", "Broken Font", "bad.ttf")
-Chatter.db.global.chatFont = "Broken Font"
+Whispr.db.global.chatFont = "Broken Font"
 media:Apply(label)
 equal(label.path, "Fonts/Game.ttf", "failed font load safely falls back")
 media:Apply(label, true)

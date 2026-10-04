@@ -200,7 +200,7 @@ function Screenshots:Create()
         return
     end
 
-    local data = Chatter.db.char
+    local data = Whispr.db.char
     local now = time()
     -- Seed directly: screenshot samples must never evict real history, even
     -- when the user's retention limits are smaller than this set.

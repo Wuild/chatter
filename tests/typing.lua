@@ -9,7 +9,7 @@ GetNormalizedRealmName = function()
 end
 
 local function load(name)
-    assert(loadfile("scripts/" .. name .. ".lua"))("Chatter", addon)
+    assert(loadfile("scripts/" .. name .. ".lua"))("Whispr", addon)
 end
 
 local function equal(a, b, label)
@@ -37,7 +37,7 @@ end
 local locked = false
 C_ChatInfo = {
     RegisterAddonMessagePrefix = function(prefix)
-        equal(prefix, "ChatterTyping1", "versioned prefix")
+        equal(prefix, "WhisprTyping1", "versioned prefix")
         return true
     end,
 
@@ -50,7 +50,7 @@ C_ChatInfo = {
     end,
 }
 
-Chatter = {
+Whispr = {
     db = {
         global = {},
         char = {
@@ -106,7 +106,7 @@ equal(packets[4].payload, "S", "idle sends stop")
 now = 110
 t:Receive("CHAT_MSG_ADDON", t.prefix, "T", "WHISPER", "Friend-Home")
 assert(t:IsTyping("friend"), "typing appears for capable peer")
-equal(#Chatter.db.char.conversations.friend.messages, 0, "typing is not history")
+equal(#Whispr.db.char.conversations.friend.messages, 0, "typing is not history")
 t:Receive("CHAT_MSG_ADDON", t.prefix, "S", "WHISPER", "Friend-Home")
 assert(not t:IsTyping("friend"), "explicit stop clears badge")
 t:Receive("CHAT_MSG_ADDON", t.prefix, "T", "WHISPER", "Friend-Home")
@@ -120,7 +120,7 @@ t:Receive("CHAT_MSG_ADDON", t.prefix, "unexpected", "WHISPER", "Friend-Home")
 equal(#packets, count, "unrelated channels prefixes and malformed payloads ignored")
 t:Receive("CHAT_MSG_ADDON", t.prefix, "H", "WHISPER", "Stranger")
 equal(packets[#packets].payload, "A", "first contact can discover addon without saved history")
-assert(not Chatter.db.char.conversations.stranger, "discovery never creates chats")
+assert(not Whispr.db.char.conversations.stranger, "discovery never creates chats")
 t:Receive("CHAT_MSG_ADDON", t.prefix, "T", "WHISPER", "Stranger")
 assert(not t:IsTyping("stranger"), "unknown sender cannot open typing badge")
 now = 120
@@ -148,12 +148,12 @@ equal(packets[#packets].payload, "T", "typing resumes when transport available")
 t:Disable()
 equal(packets[#packets].payload, "S", "disable clears remote status")
 assert(not t.frame.shown and not t:IsTyping("friend"), "disable stops ticker and badges")
-Chatter.db.global.typingIndicators = false
+Whispr.db.global.typingIndicators = false
 count = #packets
 t:Enable()
 t:Changed(window)
 equal(#packets, count, "opt-out blocks discovery and typing")
-Chatter.db.global.typingIndicators = true
+Whispr.db.global.typingIndicators = true
 local gameID = 901
 BNGetNumFriends = function()
     return 1
@@ -176,7 +176,7 @@ C_BattleNet = {
 }
 
 local bn = { key = "bnet:friend#1234", name = "Friend", battleTag = "Friend#1234", transport = "bnet", messages = {} }
-Chatter.db.char.conversations[bn.key] = bn
+Whispr.db.char.conversations[bn.key] = bn
 window.active = bn.key
 t:Enable()
 now = 130

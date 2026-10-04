@@ -1,2 +1,2 @@
 local _, addon = ...
-addon.L = LibStub("AceLocale-3.0"):GetLocale("Chatter")
+addon.L = LibStub("AceLocale-3.0"):GetLocale("Whispr")

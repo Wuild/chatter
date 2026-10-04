@@ -1,5 +1,5 @@
 local addon = {}
-assert(loadfile("scripts/history.lua"))("Chatter", addon)
+assert(loadfile("scripts/history.lua"))("Whispr", addon)
 local first = {
     sequence = 2,
     conversations = {
@@ -41,7 +41,7 @@ local second = {
     },
 }
 
-Chatter = {
+Whispr = {
     db = {
         global = { showAllCharacters = false },
         char = first,
@@ -55,7 +55,7 @@ assert(
     h.Get("friend") == first.conversations.friend and not h.Get("bnet:friend#1"),
     "default view is current character only"
 )
-Chatter.db.global.showAllCharacters = true
+Whispr.db.global.showAllCharacters = true
 h.Invalidate()
 local merged = h.Get("friend")
 assert(#merged.messages == 3 and merged.messages[1].text == "second character", "all history combined chronologically")
@@ -86,12 +86,12 @@ first.conversations.friend.messages[1].pending = true
 assert(h.Get("friend").messages[2].pending, "delivery flags reflect original records")
 h.Confirm(first, "friend", "first character")
 assert(not h.Get("friend").messages[2].pending, "confirmation updates combined view")
-Chatter.db.global.showAllCharacters = false
+Whispr.db.global.showAllCharacters = false
 h.Invalidate()
 assert(#h.Get("friend").messages == 3, "switching back restores current-character history")
 h.Delete("friend")
 assert(second.conversations.friend, "local delete preserves other character")
-Chatter.db.global.showAllCharacters = true
+Whispr.db.global.showAllCharacters = true
 h.Invalidate()
 h.Delete("friend")
 assert(not second.conversations.friend, "combined delete removes all source records")

@@ -2,7 +2,7 @@ local addon = {}
 assert(loadfile("tests/support/locale.lua"))(addon)
 
 local function load(name)
-    assert(loadfile("scripts/" .. name .. ".lua"))("Chatter", addon)
+    assert(loadfile("scripts/" .. name .. ".lua"))("Whispr", addon)
 end
 
 local function equal(a, b, label)
@@ -140,10 +140,10 @@ addon.Window = {
     end,
 }
 
-Chatter =
+Whispr =
     { db = { global = { extensions = { notification = false } }, char = { conversations = { alice = {}, bob = {} } } } }
 load("extensions")
-assert(loadfile("extensions/notification/module.lua"))("Chatter", addon)
+assert(loadfile("extensions/notification/module.lua"))("Whispr", addon)
 local n = addon.Notification
 local opts = addon.Extensions:Options().args.extension_notification.args.settings
 -- Disabled extensions still have readable option values before their first activation.
@@ -175,7 +175,7 @@ receive("alice", "Alice")
 equal(#n.notices, 1, "hidden combat conversation alerts")
 equal(n.frames[1].sender.text, "Alice", "only sender displayed")
 equal(n.frames[1].title.text, "Whisper received", "generic title")
-assert(n.frames[1].logo.texture:find("chatter-icon.tga", 1, true), "notification shows Chatter icon")
+assert(n.frames[1].logo.texture:find("whispr-icon.tga", 1, true), "notification shows Whispr icon")
 equal(n.frames[1].details.text, "Whisper · 1 unread", "notification shows transport and unread count")
 n.frames[1].scripts.OnEnter()
 assert(n.frames[1].hovered, "hover highlights notification")
@@ -231,7 +231,7 @@ opts.set({ "onlyCombat" }, false)
 opts.set({ "duration" }, 10)
 receive("alice", "Alice")
 equal(n.notices[1].expires, 30, "duration uses extension settings")
-equal(Chatter.db.global.duration, nil, "settings isolated from core profile")
+equal(Whispr.db.global.duration, nil, "settings isolated from core profile")
 opts.args.anchor.set(nil, true)
 assert(n.anchor:IsShown() and n.moving, "anchor visible when unlocked")
 n.anchor.scripts.OnDragStart()
@@ -305,7 +305,7 @@ addon.Window.frame:Hide()
 settings.onlyCombat = false
 RAID_CLASS_COLORS = { SHAMAN = { r = 0, g = 0.44, b = 0.87 } }
 CLASS_ICON_TCOORDS = { SHAMAN = { 0.25, 0.5, 0.25, 0.5 } }
-Chatter.db.char.conversations.alice.character = { classFile = "SHAMAN" }
+Whispr.db.char.conversations.alice.character = { classFile = "SHAMAN" }
 n:Receive({ key = "alice", name = "Alice", message = { text = "Hello" } })
 local noticeFrame = n.frames[1]
 equal(noticeFrame.width, 280, "compact width applied")
@@ -313,15 +313,15 @@ equal(noticeFrame.height, 72, "compact height applied")
 assert(noticeFrame.logo.texture:find("UI-CHARACTERCREATE-CLASSES", 1, true), "sender class icon displayed")
 equal(noticeFrame.sender.textColor[3], 0.87, "sender name uses class color")
 n:Receive({ key = "bob", name = "Bob" })
-assert(n.frames[1].logo.texture:find("chatter-icon.tga", 1, true), "pooled unknown sender resets class icon")
+assert(n.frames[1].logo.texture:find("whispr-icon.tga", 1, true), "pooled unknown sender resets class icon")
 equal(n.frames[1].sender.textColor[1], addon.UI.colors.text[1], "pooled unknown sender resets class color")
 equal(n.frames[1].logo.texCoords[2], 1, "fallback restores full texture coordinates")
 load("theme")
 addon.Window.UpdateOpacity = function() end
-Chatter.db.global.windowColor = { 0.2, 0.3, 0.4 }
-Chatter.db.global.accentColor = { 0.7, 0.6, 0.5 }
-Chatter.db.global.buttonColor = { 0.3, 0.4, 0.5 }
-Chatter.db.global.backgroundOpacity = 0.6
+Whispr.db.global.windowColor = { 0.2, 0.3, 0.4 }
+Whispr.db.global.accentColor = { 0.7, 0.6, 0.5 }
+Whispr.db.global.buttonColor = { 0.3, 0.4, 0.5 }
+Whispr.db.global.backgroundOpacity = 0.6
 n:Render()
 equal(addon.Theme.surfaces[n.frames[1].surface][1], "windowColor", "notification background follows theme")
 equal(addon.Theme.surfaces[n.frames[1].surface][3], nil, "notification honors theme opacity")

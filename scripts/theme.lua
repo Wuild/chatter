@@ -21,7 +21,7 @@ Theme.defaults = {
 
 function Theme:Paint(surface, key, highlight, opaque)
     self.surfaces[surface] = { key, highlight, opaque }
-    local profile = Chatter.db and Chatter.db.global or {}
+    local profile = Whispr.db and Whispr.db.global or {}
     local color = profile[key] or self.defaults[key]
     local brighten = highlight and 0.05 or 0
     surface:SetColorTexture(
@@ -34,7 +34,7 @@ end
 
 function Theme:Refresh()
     for texture in pairs(self.grains) do
-        texture:SetAlpha(Chatter.db.global.backgroundOpacity or 1)
+        texture:SetAlpha(Whispr.db.global.backgroundOpacity or 1)
     end
 
     for surface, style in pairs(self.surfaces) do
@@ -58,7 +58,7 @@ function Theme:Refresh()
 end
 
 function Theme:ResetAppearance()
-    local profile = Chatter.db.global
+    local profile = Whispr.db.global
     profile.themePreset = "default"
     for key in pairs(self.defaults) do
         profile[key] = nil
@@ -130,12 +130,12 @@ function Theme:Options()
             name = label,
             order = entry[3] or index,
             get = function()
-                return unpack(Chatter.db.global[key] or self.defaults[key])
+                return unpack(Whispr.db.global[key] or self.defaults[key])
             end,
 
             set = function(_, r, g, b)
-                Chatter.db.global[key] = { r, g, b }
-                Chatter.db.global.themePreset = "custom"
+                Whispr.db.global[key] = { r, g, b }
+                Whispr.db.global.themePreset = "custom"
                 self:Refresh()
             end,
         }
@@ -146,12 +146,12 @@ function Theme:Options()
         name = L["Input footer"],
         order = 9.5,
         get = function()
-            return unpack(Chatter.db.global.footerColor or self.defaults.footerColor)
+            return unpack(Whispr.db.global.footerColor or self.defaults.footerColor)
         end,
 
         set = function(_, r, g, b)
-            Chatter.db.global.footerColor = { r, g, b }
-            Chatter.db.global.themePreset = "custom"
+            Whispr.db.global.footerColor = { r, g, b }
+            Whispr.db.global.themePreset = "custom"
             self:Refresh()
         end,
     }
@@ -188,7 +188,7 @@ function Theme:Options()
         order = 13,
         desc = L["Opacity of an unfocused window when the mouse is away. Click outside a window to release its focus."],
         disabled = function()
-            return not Chatter.db.global.fadeWhenIdle
+            return not Whispr.db.global.fadeWhenIdle
         end,
     }
 
@@ -201,7 +201,7 @@ function Theme:Options()
         order = 14,
         desc = L["Wait this long after leaving a window or opening it without focus before applying idle opacity."],
         disabled = function()
-            return not Chatter.db.global.fadeWhenIdle
+            return not Whispr.db.global.fadeWhenIdle
         end,
     }
 
@@ -223,7 +223,7 @@ function Theme:Options()
         inline = true,
         args = args,
         set = function(info, value)
-            Chatter.db.global[info[#info]] = value
+            Whispr.db.global[info[#info]] = value
             self:Refresh()
         end,
     }
@@ -291,14 +291,14 @@ function Theme:Values()
 end
 
 function Theme:CurrentPreset()
-    local id = Chatter.db.global.themePreset or "default"
+    local id = Whispr.db.global.themePreset or "default"
     local preset = self.presets[id]
     if not preset or not self:Available(id) then
         return "custom"
     end
 
     for key, fallback in pairs(self.defaults) do
-        local actual, expected = Chatter.db.global[key] or fallback, preset.colors[key] or fallback
+        local actual, expected = Whispr.db.global[key] or fallback, preset.colors[key] or fallback
         for index = 1, 3 do
             if actual[index] ~= expected[index] then
                 return "custom"
@@ -314,7 +314,7 @@ function Theme:Apply(id)
         return nil, L["Theme unavailable"]
     end
 
-    local profile, preset = Chatter.db.global, self.presets[id]
+    local profile, preset = Whispr.db.global, self.presets[id]
     for key, fallback in pairs(self.defaults) do
         local color = preset.colors[key] or fallback
         profile[key] = { color[1], color[2], color[3] }
@@ -329,7 +329,7 @@ function Theme:Apply(id)
     return true
 end
 
-Theme:Register("default", { name = "Chatter", colors = {} })
+Theme:Register("default", { name = "Whispr", colors = {} })
 Theme:Register("midnight", {
     name = L["Midnight"],
     colors = {

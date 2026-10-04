@@ -1,17 +1,17 @@
-# Chatter extension API (version 2)
+# Whispr extension API (version 2)
 
 Create a named extension object, then define colon-method lifecycle hooks, as
-with Ace modules. Chatter manages initialization, saved activation preferences,
+with Ace modules. Whispr manages initialization, saved activation preferences,
 message subscriptions and failures. Built-in Emoji, Notification, Keyword actions
 and Character names modules live in their own directories under `extensions/`;
 each has a `module.lua`.
 
-External extensions remain separate WoW addons with `## Dependencies: Chatter`
+External extensions remain separate WoW addons with `## Dependencies: Whispr`
 in their TOC. Use a unique, stable ID containing letters, digits, underscores or
 hyphens. Translate display names and option labels in your own locale table.
 
 ```lua
-local module = Chatter:NewExtension("my_theme_pack", {
+local module = Whispr:NewExtension("my_theme_pack", {
     name = "My theme pack",
     version = "1.0.0",
     description = "A violet palette and a conversation counter.",
@@ -46,38 +46,38 @@ end
 
 function module:OnDisable()
     -- Cancel your own timers, hide frames and remove external hooks here.
-    -- Chatter removes its message subscriptions automatically.
+    -- Whispr removes its message subscriptions automatically.
 end
 ```
 
 ## Lifecycle and discovery
 
-`OnInitialize()` runs once after Chatter's database exists, including for disabled
+`OnInitialize()` runs once after Whispr's database exists, including for disabled
 modules. `OnEnable()` runs when the parent is running and the extension is enabled.
 `OnDisable()` runs on disable or parent shutdown. A later enable does not repeat
 successful initialization. A module created after initialization is initialized
 on the next UI tick, giving its declaring Lua chunk time to define methods.
 
-- `Chatter:NewExtension(id, metadata)` returns a module; invalid or duplicate IDs
+- `Whispr:NewExtension(id, metadata)` returns a module; invalid or duplicate IDs
   raise an error. Metadata supports `name`, `description`, `version`, `builtin`.
-- `Chatter:GetExtension(id[, silent])` returns a module, or nil for an unknown ID
+- `Whispr:GetExtension(id[, silent])` returns a module, or nil for an unknown ID
   when `silent` is true; otherwise an unknown ID raises an error.
-- `Chatter:IterateExtensions()` yields `id, module` for object-style extensions.
-- `Chatter:EnableExtension(id)` / `DisableExtension(id)` save the user's choice.
+- `Whispr:IterateExtensions()` yields `id, module` for object-style extensions.
+- `Whispr:EnableExtension(id)` / `DisableExtension(id)` save the user's choice.
 - `module:GetName()` returns its stable ID; `IsEnabled()` reports active state.
 - `module:Enable()` / `Disable()` change and persist activation.
 - `module:SetEnabledState(boolean)` sets the default before activation, typically
   at declaration or in `OnInitialize`. An explicit saved choice takes precedence.
-- `Chatter.API.NewExtension` and `GetExtension` offer the same operations with dot
-  syntax. `Chatter.API.version` is `2`.
+- `Whispr.API.NewExtension` and `GetExtension` offer the same operations with dot
+  syntax. `Whispr.API.version` is `2`.
 
-Lifecycle and Chatter message errors are isolated and shown in Extensions settings.
+Lifecycle and Whispr message errors are isolated and shown in Extensions settings.
 A failed initialization requires an explicit enable to retry. A failed enable or
 message callback triggers cleanup and removes subscriptions. Other extensions
 continue running. Register message handlers in `OnEnable` so they are restored
 after re-enabling.
 
-These objects follow Ace's method conventions but have a Chatter-managed lifecycle;
+These objects follow Ace's method conventions but have a Whispr-managed lifecycle;
 they are not registered as AceAddon child modules. They do not automatically embed
 Ace libraries. Use your own addon for native WoW event, timer or hook facilities,
 and release those resources in `OnDisable`.
@@ -88,7 +88,7 @@ and release those resources in `OnDisable`.
   saved account-wide settings table. Missing nested defaults are filled without replacing
   existing values, including `false`. Storage uses the existing
   `global.extensionSettings[id]` namespace. Existing profile-based settings migrate
-  once with the rest of Chatter’s preferences.
+  once with the rest of Whispr’s preferences.
 - `RegisterOptions(group)` accepts an AceConfig group. Default get/set callbacks
   read/write the option's final key in `GetSettings()`. Nested groups should use
   unique leaf keys or explicit accessors. The module is the AceConfig `handler`,
@@ -97,9 +97,9 @@ and release those resources in `OnDisable`.
   the method uses the event name. Handlers receive `(self, event, payload)`.
   Registering the same event again replaces the previous handler for this module.
 - `UnregisterMessage(event)` and `UnregisterAllMessages()` remove subscriptions.
-- `Chatter.API.GetEvents()` returns a fresh sorted list of supported events.
+- `Whispr.API.GetEvents()` returns a fresh sorted list of supported events.
 
-All event payloads are copies. Mutating them cannot modify Chatter's history or
+All event payloads are copies. Mutating them cannot modify Whispr's history or
 another extension's payload. Settings → Extensions lists enable/disable toggles, with bundled modules first.
 Each extension has a nested page under Extensions in the standard AceConfig window.
 The native WoW AddOns page only launches this window; extension pages are
@@ -153,7 +153,7 @@ New conversation-scoped events also include a boolean `demo` field.
 | `THEME_CHANGED` | Applied preset ID as a string. |
 
 Message snapshots include `id`, `text`, `time`, `outgoing` and delivery flags.
-Draft events expose unsent text to enabled local extensions; Chatter never sends
+Draft events expose unsent text to enabled local extensions; Whispr never sends
 that draft text through its typing protocol. Extensions run as trusted WoW addon
 code, with the same access as other installed addons.
 
@@ -167,20 +167,20 @@ contains `name` and a `colors` table. Each color is three numbers from 0 to 1:
 `outgoingColor`, `accentColor`, `selectedColor`, `inputColor`, `buttonColor`,
 `footerColor`, `focusedBorderColor`, `unfocusedBorderColor`.
 
-Omitted colors use Chatter defaults. Presets preserve fonts, opacity, history,
+Omitted colors use Whispr defaults. Presets preserve fonts, opacity, history,
 sounds and behavior. Disabling an extension hides its themes while retaining an
-already applied palette as Custom colors. `Chatter.API.RegisterTheme(id, definition)`
+already applied palette as Custom colors. `Whispr.API.RegisterTheme(id, definition)`
 also supports standalone presets, returning `true` or `nil, error`.
 
 ## Version 1 compatibility
 
-`Chatter.API.RegisterExtension(id, spec)` still accepts the original callback
+`Whispr.API.RegisterExtension(id, spec)` still accepts the original callback
 specification and returns `true` or `nil, error`. Its `onEnable(context)` and
 `onDisable(context)` hooks and dot-style `context.GetSettings()`,
 `context.On(event, callback)`, and `context.RegisterTheme()` remain supported.
 Legacy callbacks receive the payload alone, and support the expanded event list.
-`Chatter.API.IsExtensionEnabled(id)` works with both API versions.
+`Whispr.API.IsExtensionEnabled(id)` works with both API versions.
 
-To migrate, replace registration with `Chatter:NewExtension`, define `OnInitialize`,
+To migrate, replace registration with `Whispr:NewExtension`, define `OnInitialize`,
 `OnEnable`, and `OnDisable` methods on the returned object, and use its colon-method
 helpers. Keep the same ID to retain saved settings, enable state, and theme IDs.

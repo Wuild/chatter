@@ -1,11 +1,11 @@
 -- Bundled whisper alerts with plain-text message previews.
 local _, addon = ...
 local L = addon.L
-local Notification = Chatter:NewExtension("notification", {
+local Notification = Whispr:NewExtension("notification", {
     name = L["Notification"],
     version = "1.0.0",
     builtin = true,
-    description = L["Shows whispers with a short message preview when Chatter stays hidden. Click to open the conversation, or use the close button to dismiss."],
+    description = L["Shows whispers with a short message preview when Whispr stays hidden. Click to open the conversation, or use the close button to dismiss."],
 })
 
 Notification.notices, Notification.frames = {}, {}
@@ -190,7 +190,7 @@ function Notification:Identity(frame, notice, conversation)
         frame.logo:SetTexture("Interface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES")
         frame.logo:SetTexCoord(unpack(coords))
     else
-        frame.logo:SetTexture("Interface\\AddOns\\Chatter\\assets\\chatter-icon.tga")
+        frame.logo:SetTexture("Interface\\AddOns\\Whispr\\assets\\whispr-icon.tga")
         frame.logo:SetTexCoord(0, 1, 0, 1)
     end
 end
@@ -243,7 +243,7 @@ function Notification:Render()
             frame.sender:SetWidth(246)
             frame.sender:SetWordWrap(false)
             frame.logo = frame:CreateTexture(nil, "ARTWORK")
-            frame.logo:SetTexture("Interface\\AddOns\\Chatter\\assets\\chatter-icon.tga")
+            frame.logo:SetTexture("Interface\\AddOns\\Whispr\\assets\\whispr-icon.tga")
             frame.logo:SetSize(24, 24)
             frame.logo:SetPoint("TOPLEFT", 10, -10)
             frame.details = UI.Text(frame, "", "GameFontDisableSmall")
@@ -261,7 +261,7 @@ function Notification:Render()
             frame.close:SetPoint("TOPRIGHT", -6, -6)
             frame.close.surface = UI.Round(frame.close, 3, 0.20, 0.24, 0.27)
             frame.close.icon = frame.close:CreateTexture(nil, "OVERLAY")
-            frame.close.icon:SetTexture("Interface\\AddOns\\Chatter\\assets\\icons\\close.tga")
+            frame.close.icon:SetTexture("Interface\\AddOns\\Whispr\\assets\\icons\\close.tga")
             frame.close.icon:SetSize(12, 12)
             frame.close.icon:SetPoint("CENTER")
             frame.close:SetScript("OnClick", function()
@@ -299,7 +299,7 @@ function Notification:Render()
                 end
 
                 self:Dismiss(current)
-                if button == "LeftButton" and not current.preview and Chatter.db.char.conversations[current.key] then
+                if button == "LeftButton" and not current.preview and Whispr.db.char.conversations[current.key] then
                     addon.Window:Open(current.key)
                 end
             end)
@@ -331,8 +331,7 @@ function Notification:Render()
         frame.preview:SetShown(settings.showPreview ~= false)
         frame.notice = notice
         frame.sender:SetText(notice.name)
-        local conversation = addon.History and addon.History.Get(notice.key)
-            or Chatter.db.char.conversations[notice.key]
+        local conversation = addon.History and addon.History.Get(notice.key) or Whispr.db.char.conversations[notice.key]
         self:Identity(frame, notice, conversation)
         local unread = math.max(1, conversation and conversation.unread or notice.count or 1)
         frame.details:SetText(
@@ -546,7 +545,7 @@ Notification:RegisterOptions({
                     key = "preview",
                     name = UnitName("player") or L["You"],
                     message = {
-                        text = L["Hey! Ready for tonight’s adventure? This is a preview of a Chatter notification."],
+                        text = L["Hey! Ready for tonight’s adventure? This is a preview of a Whispr notification."],
                     },
                 }, true)
             end,

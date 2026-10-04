@@ -1,9 +1,9 @@
 local addon = {}
 assert(loadfile("tests/support/locale.lua"))(addon)
-assert(loadfile("extensions/emoji/emotes.lua"))("Chatter", addon)
-assert(loadfile("extensions/emoji/renderer.lua"))("Chatter", addon)
+assert(loadfile("extensions/emoji/emotes.lua"))("Whispr", addon)
+assert(loadfile("extensions/emoji/renderer.lua"))("Whispr", addon)
 assert(loadfile("tests/support/emoji-filters.lua"))(addon)
-assert(loadfile("scripts/selection.lua"))("Chatter", addon)
+assert(loadfile("scripts/selection.lua"))("Whispr", addon)
 local Selection = addon.Selection
 
 local function equal(a, b, label)
@@ -196,7 +196,7 @@ local link = "|cffabcdef|Hitem:123|h[Sword]|h|r"
 equal(Selection.CopyText(link, 1, #link), "[Sword]", "copies item label without markup")
 local a = assert(link:find("Sword", 1, true))
 equal(Selection.CopyText(link, a, a + 2), "Swo", "partial hyperlink label")
-local smile = "|TInterface\\AddOns\\Chatter\\assets\\emotes\\happy.tga:18|t"
+local smile = "|TInterface\\AddOns\\Whispr\\assets\\emotes\\happy.tga:18|t"
 equal(Selection.CopyText(smile, 1, #smile), ":)", "smiley selection copies a text face")
 equal(Selection.CopyText("a||b\nc", 1, 6), "a|b\nc", "pipes and line breaks survive")
 print("Read-only drag selection, wrapping, reverse selection, UTF-8, link labels and hidden clipboard passed.")

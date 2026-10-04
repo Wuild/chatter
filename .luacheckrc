@@ -7,7 +7,7 @@ max_line_length = false
 -- WoW callbacks and colon methods intentionally leave some parameters unused.
 unused_args = false
 
-globals = { "Chatter", "StaticPopupDialogs" }
+globals = { "Whispr", "WhisprSettings", "StaticPopupDialogs" }
 -- Explicit WoW/Ace globals: unknown names and accidental globals still fail lint.
 read_globals = {
     "ACCEPT",
@@ -103,6 +103,7 @@ read_globals = {
     "UnitPopupManager",
     "Menu",
     "strlower",
+    "IsModifiedClick",
     "UnitRace",
     "WOW_PROJECT_ID",
     "date",

@@ -2,10 +2,10 @@ local addon = {}
 assert(loadfile("tests/support/locale.lua"))(addon)
 
 local function load(name)
-    assert(loadfile("scripts/" .. name .. ".lua"))("Chatter", addon)
+    assert(loadfile("scripts/" .. name .. ".lua"))("Whispr", addon)
 end
 
-Chatter = { db = { global = { extensions = {} } } }
+Whispr = { db = { global = { extensions = {} } } }
 GetNormalizedRealmName = function()
     return "Home"
 end
@@ -33,8 +33,8 @@ load("characters")
 load("format")
 load("extensions")
 addon.Characters.sources = { alice = { classFile = "MAGE" } }
-assert(loadfile("extensions/character-names/module.lua"))("Chatter", addon)
-assert(loadfile("extensions/keywords/module.lua"))("Chatter", addon)
+assert(loadfile("extensions/character-names/module.lua"))("Whispr", addon)
+assert(loadfile("extensions/keywords/module.lua"))("Whispr", addon)
 addon.Extensions:Start()
 local names = addon.CharacterNames
 assert(names:IsEnabled(), "independent name extension enabled")
@@ -100,7 +100,7 @@ addon.Characters.revision = 3
 local combined = addon.Format.Message("Alice-Home inv", true, 14, "sender")
 assert(combined:find("|cffc79c6eAlice-Home|r", 1, true), "names colored alongside keyword actions")
 assert(
-    combined:find("|cffffff00|Hchatterkeyword:", 1, true) and combined:find("|h[inv]|h|r", 1, true),
+    combined:find("|cffffff00|Hwhisprkeyword:", 1, true) and combined:find("|h[inv]|h|r", 1, true),
     "keyword action retains yellow bracket styling"
 )
 assert(not combined:find("|cff40c7ebinv", 1, true), "name matching does not recolor keyword label")

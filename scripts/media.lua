@@ -10,7 +10,7 @@ function Media:Fonts()
         fonts[name] = name
     end
 
-    local selected = Chatter.db.global.chatFont
+    local selected = Whispr.db.global.chatFont
     if selected and not fonts[selected] then
         fonts[selected] = string.format(L["%s (unavailable)"], selected)
     end
@@ -19,7 +19,7 @@ function Media:Fonts()
 end
 
 function Media:Apply(text, metadata)
-    local settings = Chatter.db.global
+    local settings = Whispr.db.global
     local fallback = GameFontHighlight:GetFont()
     local path = settings.chatFont ~= "Game default" and shared:Fetch("font", settings.chatFont, true) or fallback
     local size = settings.chatFontSize or 14
@@ -55,9 +55,9 @@ function Media:Refresh()
 end
 
 function Media:Initialize()
-    shared:Register("sound", "Chatter", addon.Sounds:Path("linux-message"))
+    shared:Register("sound", "Whispr", addon.Sounds:Path("linux-message"))
     for key, label in pairs(addon.Sounds.labels) do
-        shared:Register("sound", "Chatter: " .. label, addon.Sounds:Path(key))
+        shared:Register("sound", "Whispr: " .. label, addon.Sounds:Path(key))
     end
 
     shared.RegisterCallback(self, "LibSharedMedia_Registered", function(_, kind)
@@ -65,7 +65,7 @@ function Media:Initialize()
             return
         end
 
-        LibStub("AceConfigRegistry-3.0"):NotifyChange("Chatter")
+        LibStub("AceConfigRegistry-3.0"):NotifyChange("Whispr")
         self:Refresh()
     end)
 end

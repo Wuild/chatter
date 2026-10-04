@@ -25,7 +25,7 @@ function Icon:Click(button, mouseButton)
     if mouseButton == "RightButton" then
         self:Menu(button)
     elseif mouseButton == "LeftButton" then
-        if Chatter.db.global.separateWindows then
+        if Whispr.db.global.separateWindows then
             self:Menu(button, true)
             return
         end
@@ -42,14 +42,14 @@ end
 function Icon:Menu(button, recentOnly)
     MenuUtil.CreateContextMenu(button, function(_, menu)
         if not recentOnly then
-            if not Chatter.db.global.separateWindows then
-                menu:CreateButton(L["Open Chatter"], function()
+            if not Whispr.db.global.separateWindows then
+                menu:CreateButton(L["Open Whispr"], function()
                     addon.Window:Open()
                 end)
             end
 
             menu:CreateButton(L["Settings"], function()
-                Chatter:ShowSettings()
+                Whispr:ShowSettings()
             end)
 
             menu:CreateDivider()
@@ -81,7 +81,7 @@ end
 function Icon:Enable()
     local broker = LibStub("LibDataBroker-1.1")
     local dbIcon = LibStub("LibDBIcon-1.0")
-    local profile = Chatter.db.global
+    local profile = Whispr.db.global
     profile.minimap = profile.minimap or { hide = false, minimapPos = 225 }
     if profile.minimapAngle then
         profile.minimap.minimapPos = profile.minimapAngle
@@ -89,23 +89,23 @@ function Icon:Enable()
     end
 
     self.dataObject = self.dataObject
-        or broker:NewDataObject("Chatter", {
+        or broker:NewDataObject("Whispr", {
             type = "launcher",
-            label = "Chatter",
-            icon = "Interface\\AddOns\\Chatter\\assets\\chatter-icon.tga",
+            label = "Whispr",
+            icon = "Interface\\AddOns\\Whispr\\assets\\whispr-icon.tga",
             OnClick = function(button, mouseButton)
                 self:Click(button, mouseButton)
             end,
 
             OnTooltipShow = function(tooltip)
-                tooltip:AddLine("Chatter")
+                tooltip:AddLine("Whispr")
                 if (self.unread or 0) > 0 then
                     tooltip:AddLine(string.format(L["Unread messages: %d"], self.unread), 1, 0.65, 0.4)
                 end
 
                 tooltip:AddLine(
-                    Chatter.db.global.separateWindows and L["Left-click: recent conversations"]
-                        or L["Left-click: toggle Chatter"],
+                    Whispr.db.global.separateWindows and L["Left-click: recent conversations"]
+                        or L["Left-click: toggle Whispr"],
                     1,
                     1,
                     1
@@ -115,17 +115,17 @@ function Icon:Enable()
             end,
         })
 
-    if not dbIcon:IsRegistered("Chatter") then
-        dbIcon:Register("Chatter", self.dataObject, profile.minimap)
+    if not dbIcon:IsRegistered("Whispr") then
+        dbIcon:Register("Whispr", self.dataObject, profile.minimap)
     else
-        dbIcon:Refresh("Chatter", profile.minimap)
+        dbIcon:Refresh("Whispr", profile.minimap)
     end
 
-    self.button = dbIcon:GetMinimapButton("Chatter")
+    self.button = dbIcon:GetMinimapButton("Whispr")
     -- Bundle the backing instead of relying on a retail texture file ID that
     -- may not resolve in Forever. LibDBIcon still positions it inside its ring.
     if self.button and self.button.background then
-        self.button.background:SetTexture("Interface\\AddOns\\Chatter\\assets\\minimap-background.tga")
+        self.button.background:SetTexture("Interface\\AddOns\\Whispr\\assets\\minimap-background.tga")
         self.button.background:Show()
     end
 
@@ -144,12 +144,12 @@ function Icon:Enable()
 
     self:UpdateUnread()
     if profile.minimap.hide then
-        dbIcon:Hide("Chatter")
+        dbIcon:Hide("Whispr")
     else
-        dbIcon:Show("Chatter")
+        dbIcon:Show("Whispr")
     end
 end
 
 function Icon:Disable()
-    LibStub("LibDBIcon-1.0"):Hide("Chatter")
+    LibStub("LibDBIcon-1.0"):Hide("Whispr")
 end

@@ -43,7 +43,7 @@ function BattleNet.Resolve(target)
 end
 
 function BattleNet.Ensure(identity)
-    local data = Chatter.db.char
+    local data = Whispr.db.char
     local conversation = data.conversations[identity.key]
     if not conversation then
         data.sequence = data.sequence + 1
@@ -54,7 +54,7 @@ function BattleNet.Ensure(identity)
     conversation.transport, conversation.battleTag = "bnet", identity.battleTag
     conversation.name = identity.name
     -- Presence IDs are session-scoped; resolve the BattleTag again when sending.
-    addon.History.Trim(data, Chatter.db.global)
+    addon.History.Trim(data, Whispr.db.global)
     return conversation
 end
 
