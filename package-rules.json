@@ -1,0 +1,17 @@
+{
+  "include": [
+    "Whispr.toc",
+    "LICENSE",
+    "scripts/**/*",
+    "extensions/**/*",
+    "locales/**/*",
+    "assets/**/*"
+  ],
+  "exclude": [
+    "**/__pycache__/**",
+    "**/*.pyc",
+    "assets/**/*.svg",
+    "assets/**/*.png",
+    "assets/**/source/**"
+  ]
+}

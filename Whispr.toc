@@ -3,7 +3,8 @@
 ## Notes: Whisper conversations for Retail, Classic, Anniversary and Forever
 ## Author: Wuild
 ## X-License: MIT
-## Version: 0.1.0
+## Version: @project-version@
+## X-Curse-Project-ID: 1727008
 ## OptionalDeps: Ace3, LibDataBroker-1.1, LibDBIcon-1.0, LibSharedMedia-3.0, SharedMedia
 ## SavedVariables: WhisprSettings
 

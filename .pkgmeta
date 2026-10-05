@@ -1,0 +1,21 @@
+package-as: Whispr
+
+enable-nolib-creation: no
+
+ignore:
+    - .env
+    - .env.*
+    - .github
+    - .agents
+    - .codex
+    - .idea
+    - dist
+    - build
+    - tools
+    - tests
+    - docs
+    - README.md
+    - Makefile
+    - package-rules.json
+    - assets/classes/source
+    - assets/emotes/source
