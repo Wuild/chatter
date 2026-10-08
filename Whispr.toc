@@ -10,6 +10,7 @@
 
 scripts\embeds.xml
 locales\enUS.lua
+locales\zhCN.lua
 scripts\locale.lua
 scripts\client.lua
 scripts\config.lua
