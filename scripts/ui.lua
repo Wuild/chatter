@@ -36,7 +36,7 @@ function UI.Grain(parent)
 
     parent:HookScript("OnSizeChanged", resize)
     resize()
-    texture:SetAlpha(Whispr.db.global.backgroundOpacity or 1)
+    texture:SetAlpha(addon.Theme and addon.Theme:HidesGrain() and 0 or (Whispr.db.global.backgroundOpacity or 1))
     if addon.Theme then
         addon.Theme.grains[texture] = true
     end
@@ -74,9 +74,32 @@ function UI.Round(parent, radius, r, g, b, a)
         strip:SetPoint("BOTTOM" .. side, 0, radius)
     end
 
-    local shape = {}
+    local shape = { parent = parent, role = "panel", shown = true, insets = { 0, 0, 0 } }
+
+    function shape:SetSkin(skin, key)
+        if self.skin == skin and self.skinKey == key then
+            return
+        end
+
+        if self.skin and self.skin.ReleaseSurface then
+            self.skin:ReleaseSurface(self)
+        end
+
+        self.skin, self.skinKey = skin, key
+        if skin and skin.ApplySurface then
+            skin:ApplySurface(self, key)
+        end
+
+        self:SetInsets(unpack(self.insets))
+        self:SetShown(self.shown)
+    end
 
     function shape:SetInsets(top, left, right)
+        self.insets = { top, left, right }
+        if self.skin and self.skin.LayoutSurface then
+            self.skin:LayoutSurface(self, top, left, right)
+        end
+
         parts[1]:SetPoint("TOPLEFT", left, -top)
         parts[2]:SetPoint("TOPRIGHT", -right, -top)
         parts[3]:SetPoint("BOTTOMLEFT", left, 0)
@@ -90,6 +113,10 @@ function UI.Round(parent, radius, r, g, b, a)
     end
 
     function shape:SetColorTexture(red, green, blue, alpha)
+        if self.skin and self.skin.ColorSurface then
+            self.skin:ColorSurface(self, red, green, blue, alpha)
+        end
+
         for index, texture in ipairs(parts) do
             if index <= 4 then
                 texture:SetVertexColor(red, green, blue, alpha or 1)
@@ -100,8 +127,13 @@ function UI.Round(parent, radius, r, g, b, a)
     end
 
     function shape:SetShown(shown)
+        self.shown = shown
+        if self.skin and self.skin.ShowSurface then
+            self.skin:ShowSurface(self, shown)
+        end
+
         for _, texture in ipairs(parts) do
-            texture:SetShown(shown)
+            texture:SetShown(not (self.skin and self.skin.ApplySurface) and shown)
         end
     end
 
@@ -143,6 +175,22 @@ function UI.Button(parent, text, width, action, accent)
     local color = accent and UI.colors.accent or { 0.20, 0.24, 0.27 }
     local themeKey = accent and "accentColor" or "buttonColor"
     button.surface = UI.Round(button, 4, unpack(color))
+    button.surface.isButton = true
+    button.surface.role = "button"
+    button:SetScript("OnMouseDown", function()
+        local skin = button.surface.skin
+        if skin and skin.ButtonState then
+            skin:ButtonState(button.surface, "down")
+        end
+    end)
+
+    button:SetScript("OnMouseUp", function()
+        local skin = button.surface.skin
+        if skin and skin.ButtonState then
+            skin:ButtonState(button.surface, "up")
+        end
+    end)
+
     if addon.Theme then
         addon.Theme:Paint(button.surface, themeKey)
     end
@@ -187,11 +235,12 @@ function UI.Input(parent, width, flat, colorKey)
     input:SetFontObject(GameFontHighlight)
     input:SetTextInsets(14, 14, 0, 0)
     if flat then
-        input.surface = UI.Background(input, 0.13, 0.16, 0.18)
+        input.surface = UI.Round(input, 0, 0.13, 0.16, 0.18)
     else
         input.surface = UI.Round(input, 4, 0.13, 0.16, 0.18)
     end
 
+    input.surface.role = "input"
     if addon.Theme then
         addon.Theme:Paint(input.surface, themeKey)
     end

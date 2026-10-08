@@ -9,8 +9,9 @@
 ## SavedVariables: WhisprSettings
 
 scripts\embeds.xml
-locales\enUS.lua
 scripts\locale.lua
+locales\enUS.lua
+locales\deDE.lua
 scripts\client.lua
 scripts\config.lua
 scripts\database.lua
@@ -23,6 +24,16 @@ scripts\format.lua
 scripts\composer.lua
 scripts\typing.lua
 scripts\theme.lua
+themes\default\theme.lua
+themes\classic\theme.lua
+themes\midnight\theme.lua
+themes\forest\theme.lua
+themes\ember\theme.lua
+themes\ocean\theme.lua
+themes\amethyst\theme.lua
+themes\rosewood\theme.lua
+themes\slate\theme.lua
+themes\sandstone\theme.lua
 scripts\extensions.lua
 extensions\emoji\renderer.lua
 extensions\emoji\module.lua
@@ -37,6 +48,7 @@ extensions\notification\module.lua
 extensions\keywords\module.lua
 extensions\character-names\module.lua
 scripts\minimap.lua
+extensions\floating-button\module.lua
 scripts\debug.lua
 scripts\screenshots.lua
 scripts\settings.lua

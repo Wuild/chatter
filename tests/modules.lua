@@ -22,6 +22,7 @@ end
 
 Whispr = {}
 load("theme")
+assert(loadfile("tests/support/themes.lua"))(addon)
 load("extensions")
 local module = Whispr:NewExtension("example", { name = "Example" })
 local initialized, enabled, disabled, received = 0, 0, 0, 0

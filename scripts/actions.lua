@@ -184,6 +184,13 @@ function Actions:OpenPlayerMenu(key, appendEntries)
     end
 
     local context = self:Context(conversation)
+    if appendEntries then
+        -- This menu belongs to Whispr, not a Blizzard whisper chat frame.
+        -- Omitting chatType suppresses the native "Move to Whisper Window"
+        -- action; Whispr inserts its own detach/dock action under the title.
+        context.chatType, context.chatTarget = nil, nil
+    end
+
     -- Blizzard resolves fresh account data itself and rejects prefilled tables.
     context.accountInfo = nil
     local which = "FRIEND"

@@ -94,3 +94,17 @@ assert(
     "legacy and undocked demos removed"
 )
 print("Saved demo cleanup across characters preserves real history.")
+
+local located = { character = { area = "Westfall", class = "Druid" }, messages = { { text = "keep" } } }
+local archived = { character = { area = "Ironforge", guild = "Guild" } }
+local locations = {
+    char = { conversations = { located = located, unknown = {} } },
+    sv = { char = { other = { conversations = { archived = archived } } } },
+}
+
+addon.Database:RemoveCharacterLocations(locations)
+addon.Database:RemoveCharacterLocations(locations)
+assert(located.character.area == nil and archived.character.area == nil, "locations removed across saved characters")
+assert(located.character.class == "Druid" and archived.character.guild == "Guild", "identity metadata preserved")
+assert(located.messages[1].text == "keep", "location cleanup preserves message history")
+print("Obsolete location cleanup is idempotent and covers all characters.")

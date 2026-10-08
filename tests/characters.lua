@@ -171,10 +171,10 @@ end
 local guildFriend = { name = "Guild Friend" }
 Characters.RefreshSources({ conversations = { friend = friend, guildFriend = guildFriend } })
 equal(friend.character.level, 35, "friend level without Who")
-equal(friend.character.area, "Stormwind", "friend location without Who")
+equal(friend.character.area, nil, "friend location is not collected")
 equal(guildFriend.character.guild, "Test Guild", "guild roster membership without Who")
 equal(guildFriend.character.level, 50, "guild roster level without Who")
-equal(guildFriend.character.area, "Ironforge", "guild roster location without Who")
+equal(guildFriend.character.area, nil, "guild location is not collected")
 print("Unit, friend and guild metadata works without Who queries.")
 
 addon.Client = { hasLastNames = true }
@@ -227,7 +227,7 @@ equal(guidQueries, 0, "selecting saved conversation does not query stale GUID")
 equal(Characters.Label(offline), "Human · Mage", "offline label retained")
 Characters.Merge(offline, { race = "Inconnu", class = "Unknown", classFile = "UNKNOWN", area = "Offline", level = 0 })
 equal(Characters.Label(offline), "Human · Mage", "localized placeholders never erase known class/race")
-equal(offline.character.area, "Stormwind", "offline placeholder preserves location")
+equal(offline.character.area, nil, "obsolete saved location is cleared")
 equal(Characters.Color(offline), RAID_CLASS_COLORS.MAGE, "cached class color retained")
 C_FriendList.GetFriendInfoByIndex = function()
     return {
@@ -272,7 +272,7 @@ end
 
 Characters.RefreshSources({ conversations = { offline = offline } })
 equal(offline.character.level, 61, "connected friend updates cached metadata")
-equal(offline.character.area, "Orgrimmar", "connected location refreshes normally")
+equal(offline.character.area, nil, "connected location is not collected")
 UnitExists = function(unit)
     return unit == "target"
 end

@@ -96,6 +96,8 @@ end
 function Whispr:OnInitialize()
     self.db = LibStub("AceDB-3.0"):New("WhisprSettings", addon.defaults, true)
     addon.Database:MigrateSettings(self.db)
+    addon.Locale:Initialize(self.db.global)
+    addon.Database:RemoveCharacterLocations(self.db)
     if not addon.developmentMode then
         addon.Database:RemoveDemoConversations(self.db)
     end
@@ -284,10 +286,13 @@ function Whispr:BattleNetWhisper(event, text, name, ...)
         addon.Actions:RememberChat(identity.key, select(9, ...))
     end
 
+    if not outgoing then
+        self:PlayMessageSound()
+    end
+
     Window:RefreshCharacters()
     Window:Refresh(identity.key)
     if not outgoing then
-        self:PlayMessageSound()
         Window:Receive(identity.key)
         if addon.Extensions then
             addon.Extensions:Emit("MESSAGE_RECEIVED", {
@@ -366,11 +371,14 @@ function Whispr:Whisper(event, text, name, ...)
             addon.Actions:RememberChat(key, select(9, ...))
         end
 
+        if not outgoing then
+            self:PlayMessageSound()
+        end
+
         addon.Characters.Update(conversation, guid)
         Window:RefreshCharacters()
         Window:Refresh(key)
         if not outgoing then
-            self:PlayMessageSound()
             Window:Receive(key)
             if addon.Extensions then
                 addon.Extensions:Emit("MESSAGE_RECEIVED", {

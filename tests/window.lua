@@ -43,6 +43,14 @@ do
     methods[method] = noop
 end
 
+function methods:SetClampedToScreen(value)
+    self.clampedToScreen = value
+end
+
+function methods:SetParent(parent)
+    self.parent = parent
+end
+
 function methods:SetFrameStrata(strata)
     self.strata = strata
 end
@@ -253,6 +261,47 @@ end
 
 CreateFrame = function(_, name, parent, template)
     local f = frame(name, parent)
+    if template == "InsetFrameTemplate" then
+        f.Bg = frame(nil, f)
+        f.NineSlice = frame(nil, f)
+    end
+
+    if template == "PortraitFrameFlatTemplate" then
+        f.Bg = frame(nil, f)
+        f.TitleContainer = frame(nil, f)
+        f.TitleContainer.frameLevel = 510
+        f.TitleContainer.TitleText = frame(nil, f.TitleContainer)
+        f.TitleContainer.TitleBg = frame(nil, f.TitleContainer)
+        f.NineSlice = frame(nil, f)
+        f.NineSlice.frameLevel = 500
+        f.NineSlice.TopEdge = frame(nil, f.NineSlice)
+        f.NineSlice.TopEdge.height = 28
+        f.PortraitContainer = frame(nil, f)
+        f.PortraitContainer.portrait = frame(nil, f.PortraitContainer)
+        f.CloseButton = frame(nil, f)
+        f.GetPortrait = function(self)
+            return self.PortraitContainer.portrait
+        end
+
+        f.SetBorder = function(self, layout)
+            self.layout = layout
+        end
+
+        f.SetPortraitTextureSizeAndOffset = function(self, size, x, y)
+            self:GetPortrait():SetSize(size, size)
+            self:GetPortrait():SetPoint("TOPLEFT", self, "TOPLEFT", x, y)
+        end
+
+        f.SetTitleOffsets = function(self, left, right)
+            self.titleOffsets = { left, right }
+        end
+
+        f.SetBackgroundColor = function(self, color)
+            self.nativeBackground = true
+            self.nativeBackgroundColor = color
+        end
+    end
+
     if template == "ButtonFrameTemplate" then
         f.Inset = frame(nil, f)
     end
@@ -297,6 +346,7 @@ assert(loadfile("extensions/emoji/renderer.lua"))("Whispr", addon)
 load("format")
 load("composer")
 load("theme")
+assert(loadfile("tests/support/themes.lua"))(addon)
 load("ui")
 load("info")
 load("actions")
@@ -747,6 +797,26 @@ assert(
     restoredPop.frame.lastPoint[4] <= 155 and restoredPop.frame.lastPoint[5] <= 115,
     "offscreen saved position clamped after screen change"
 )
+Whispr.db.global.clampWindowsToScreen = false
+restoredPop:RestoreGeometry()
+equal(restoredPop.frame.lastPoint[4], 8000, "disabled clamping restores offscreen horizontal position")
+equal(restoredPop.frame.lastPoint[5], 6000, "disabled clamping restores offscreen vertical position")
+local offscreenPop = recreated(Window, other.key)
+offscreenPop:Create()
+equal(offscreenPop.frame.clampedToScreen, false, "new popouts inherit disabled clamping")
+equal(offscreenPop.frame.lastPoint[4], 8000, "recreated popouts retain offscreen position")
+Window:UpdateScreenClamping()
+equal(Window.frame.clampedToScreen, false, "main window updates clamping live")
+for _, popup in pairs(Window.popouts) do
+    equal(popup.frame.clampedToScreen, false, "existing popouts update clamping live")
+end
+
+Whispr.db.global.clampWindowsToScreen = true
+Window:UpdateScreenClamping()
+equal(Window.frame.clampedToScreen, true, "clamping can be enabled again")
+restoredPop:RestoreGeometry()
+assert(restoredPop.frame.lastPoint[4] <= 155, "reenabled clamping restores screen bounds")
+assert(restored.location == nil, "chat header no longer creates location label")
 UIParent:SetSize(1920, 1080)
 Window.frame:SetWidth(740)
 Window:SaveAllGeometry()
@@ -1078,21 +1148,64 @@ for _, conversation in pairs(Whispr.db.char.conversations) do
     conversation.unread = 0
 end
 
+assert(loadfile("extensions/floating-button/module.lua"))("Whispr", addon)
+flush()
+local floating = Whispr:GetExtension("floating_button")
+equal(floating:IsEnabled(), false, "floating button disabled by default")
+equal(floating.frame, nil, "disabled floating button creates no frame")
+floating:Enable()
+assert(floating:IsEnabled(), addon.Extensions.entries.floating_button.error)
+equal(floating.frame:GetWidth(), 40, "default floating button size")
+floating.options.args.size.set(nil, 64)
+equal(floating.frame:GetWidth(), 64, "floating button size updates immediately")
+local originalClick = addon.Minimap.Click
+local clicks = 0
+addon.Minimap.Click = function(_, owner, mouseButton)
+    equal(owner, floating.frame, "floating menu anchor")
+    equal(mouseButton, "RightButton", "floating forwards mouse button")
+    clicks = clicks + 1
+end
+
+floating.frame.scripts.OnMouseDown()
+floating.frame.scripts.OnClick(floating.frame, "RightButton")
+equal(clicks, 1, "floating uses minimap actions")
+floating.frame.scripts.OnDragStart()
+floating.frame.centerX, floating.frame.centerY = 1100, 650
+floating.frame.scripts.OnDragStop()
+floating.frame.scripts.OnClick(floating.frame, "LeftButton")
+equal(clicks, 1, "drag does not trigger click")
+equal(floating:GetSettings().x, 140, "floating saves horizontal position")
+equal(floating:GetSettings().y, 110, "floating saves vertical position")
+addon.Minimap.Click = originalClick
+floating:Disable()
+equal(floating.frame:IsShown(), false, "disable hides floating button")
+floating:Enable()
+equal(floating.frame.lastPoint[4], 140, "reenable restores saved position")
+equal(floating.frame:GetWidth(), 64, "reenable preserves size")
+floating.options.args.reset.func()
+equal(floating.frame.lastPoint[2], Minimap, "reset restores minimap anchor")
+equal(floating.frame.lastPoint[1], "RIGHT", "button right edge faces minimap")
+equal(floating.frame.lastPoint[3], "LEFT", "button sits left of minimap")
+equal(floating.frame.lastPoint[4], -12, "button has a gap from minimap")
 addon.Minimap:UpdateUnread()
 equal(addon.Minimap.badge:IsShown(), false, "minimap badge hidden with no unread messages")
 newest.unread = 2
 detached.unread = 3
 inbox:RefreshUnread()
+equal(floating.badgeCount:GetText(), "5", "floating totals unread messages")
+equal(floating.badge:IsShown(), true, "floating badge visible")
 equal(addon.Minimap.badgeCount:GetText(), "5", "minimap totals unread messages across conversations")
 equal(addon.Minimap.badge:IsShown(), true, "minimap badge shown for unread messages")
 newest.unread = 120
 inbox:RefreshUnread()
 equal(addon.Minimap.badgeCount:GetText(), "99+", "minimap count caps at 99+")
+equal(floating.badgeCount:GetText(), "99+", "floating overflow count")
 equal(addon.Minimap.unread, 123, "tooltip retains exact unread total")
 newest.unread = 1
 detached.unread = 0
 inbox:Open(newest.key)
 flush()
+equal(floating.badge:IsShown(), false, "reading clears floating badge")
 equal(addon.Minimap.badge:IsShown(), false, "reading active conversation clears minimap badge")
 local unopened = recreated()
 unopened.detached = {}
@@ -1102,6 +1215,9 @@ unopened:RefreshUnread()
 equal(addon.Minimap.badgeCount:GetText(), "4", "minimap refresh works before any chat frame is created")
 inbox:Delete(newest.key)
 flush()
+equal(floating.badge:IsShown(), false, "deleting clears floating badge")
+floating:Disable()
+equal(addon.Extensions.listeners.UNREAD_CHANGED.floating_button, nil, "disable removes unread subscription")
 equal(addon.Minimap.badge:IsShown(), false, "deleting unread conversation clears minimap badge")
 addon.Minimap:Enable()
 equal(addon.Minimap.badge:IsShown(), false, "enable restores correct badge state")
@@ -2523,7 +2639,11 @@ for _, bubble in ipairs(groupedWindow.bubbles) do
     equal(bubble.text:GetHeight(), bubble.textHeight, "text region fits the actual glyph height")
     local topPadding = -bubble.text.lastPoint[3] - bubble.bodyTop
     local bottomPadding = bubble:GetHeight() + bubble.text.lastPoint[3] - bubble.textHeight
-    equal(topPadding, bottomPadding, "glyph block is centered with equal padding")
+    equal(
+        topPadding - bubble.textBaselineOffset,
+        bottomPadding + bubble.textBaselineOffset,
+        "line box is centered before the single-line baseline adjustment"
+    )
     if bubble.row.grouped then
         assert(not bubble.classIcon:IsShown(), "group continuations omit icon")
     end
@@ -2578,12 +2698,34 @@ equal(
     "short text gets padding without a minimum-width box"
 )
 assert(shortBubble.bodyLeft == 0, "incoming short bubble aligns left")
+equal(shortBubble.textBaselineOffset, 2, "single-line text compensates for native font leading")
+equal(shortBubble.text:GetHeight(), 16, "baseline adjustment retains full descender and selection bounds")
 History.Add(Whispr.db.char, Whispr.db.global, "Long Header Name", "ok", true, 2001, false)
 shortWindow:RefreshMessages()
 flush()
 local reply = shortWindow.bubbles[#shortWindow.bubbles]
 equal(reply.bodyLeft + reply.bodyWidth, reply:GetWidth(), "outgoing short bubble aligns right independently of heading")
 print("Short bubble widths follow text rather than sender heading width.")
+local baselineChat =
+    History.Add(Whispr.db.char, Whispr.db.global, "Baseline Regression", "first line\nsecond line", false, 2010, false)
+shortWindow:Open(baselineChat.key)
+flush()
+equal(shortWindow.bubbles[1].textBaselineOffset, 0, "explicit multiline message keeps original placement")
+History.Add(
+    Whispr.db.char,
+    Whispr.db.global,
+    "Baseline Regression",
+    string.rep("wrapped text ", 60),
+    false,
+    2011,
+    false
+)
+shortWindow:RefreshMessages()
+flush()
+equal(shortWindow.bubbles[#shortWindow.bubbles].textBaselineOffset, 0, "wrapped message keeps original placement")
+shortWindow:Open(shortChat.key)
+flush()
+equal(shortWindow.bubbles[1].textBaselineOffset, 2, "recycled bubble restores single-line baseline")
 
 -- Exercise real selection hooks alongside message opacity and frame reuse.
 local dragIndex = 1
@@ -2728,15 +2870,26 @@ Menu = {
     end,
 }
 
+MenuUtil.CreateButton = function(label, action)
+    return { label = label, action = action, SetEnabled = noop }
+end
+
 UnitPopup_OpenMenu = function(which, context)
     MenuUtil.CreateContextMenu(nil, function(_, root)
+        root.Insert = function(_, entry, index)
+            table.insert(entries, index, entry)
+        end
+
+        root:CreateButton("Player name", noop)
         root:CreateButton("Native player action", noop)
         playerMenuModifiers["MENU_UNIT_" .. which](nil, root, context)
     end)
 end
 
 Window:ConversationMenu(Window.frame, modeChat.key)
-equal(entries[1].label, "Native player action", "native player menu is the default conversation menu")
+equal(entries[1].label, "Player name", "native player title stays first")
+equal(entries[2].label, "Open in separate window", "Whispr window action is first beneath player title")
+equal(entries[3].label, "Native player action", "native player interactions follow window action")
 local menuLabels = {}
 for _, entry in ipairs(entries) do
     if entry.label then
@@ -2748,7 +2901,27 @@ assert(menuLabels["Pin conversation"] or menuLabels["Unpin conversation"], "pin 
 assert(menuLabels["Delete conversation"] and menuLabels["Close window"], "conversation actions extend native menu")
 assert(not menuLabels["Invite to group"], "native menu does not duplicate fallback player actions")
 Window.headerAvatar.scripts.OnMouseUp(Window.headerAvatar, "RightButton")
-equal(entries[1].label, "Native player action", "header avatar opens the same extended player menu")
+equal(entries[2].label, "Open in separate window", "header avatar opens the same reordered player menu")
+local moveCount = 0
+for _, entry in ipairs(entries) do
+    if entry.label == "Open in separate window" then
+        moveCount = moveCount + 1
+    end
+end
+
+equal(moveCount, 1, "window action is not duplicated at bottom")
+local menuPopout = { owner = Window, Dock = noop }
+MenuUtil.CreateContextMenu(nil, function(_, root)
+    root.Insert = function(_, entry, index)
+        table.insert(entries, index, entry)
+    end
+
+    root:CreateButton("Player name", noop)
+    root:CreateButton("Native player action", noop)
+    Window.AddConversationMenuEntries(menuPopout, root, modeChat.key)
+end)
+
+equal(entries[2].label, "Dock in main window", "popout dock action is also first beneath title")
 print("Conversation cards and headers open native player menus with Whispr actions appended.")
 
 Window:Open(modeChat.key)
@@ -2784,3 +2957,169 @@ equal(focusPop.input:HasFocus(), true, "separate window owns the new insertion t
 focusPop:SetWindowFocus(false)
 IsModifiedClick = nil
 print("Shift-click linking preserves input without keeping the window above the spellbook.")
+
+-- Exercise live skin changes on existing windows and pooled message surfaces.
+function methods:CreateMaskTexture()
+    return frame(nil, self)
+end
+
+function methods:AddMaskTexture(mask)
+    self.mask = mask
+end
+
+function methods:SetDrawLayer() end
+
+function methods:SetGradientAlpha(...)
+    self.gradient = { ... }
+end
+
+function methods:SetFrameLevel(level)
+    self.frameLevel = level
+end
+
+function methods:GetFrameLevel()
+    return self.frameLevel or 1
+end
+
+function methods:SetColorTexture(...)
+    self.color = { ... }
+end
+
+function methods:SetBackdrop(backdrop)
+    self.backdrop = backdrop
+end
+
+function methods:SetVertexColor(...)
+    self.vertexColor = { ... }
+end
+
+function methods:SetBackdropBorderColor(...)
+    self.borderColor = { ... }
+end
+
+function methods:SetHorizTile(value)
+    self.horizontalTile = value
+end
+
+function methods:SetVertTile(value)
+    self.verticalTile = value
+end
+
+PortraitFrameFlatBaseMixin = {}
+PANEL_BACKGROUND_COLOR = {
+    GetRGB = function()
+        return 0.12, 0.10, 0.08
+    end,
+}
+
+CreateColor = function(red, green, blue, alpha)
+    return { r = red, g = green, b = blue, a = alpha }
+end
+
+local theme = addon.Theme
+addon.Window = Window
+assert(theme:Apply("classic"))
+assert(Window.background.native:IsShown(), "Classic adds native window chrome")
+assert(Window.classicChrome:IsShown(), "Classic uses Blizzard's full portrait window")
+equal(Window.classicChrome.TitleContainer.TitleText.text, "Whispr", "native title displays addon name")
+equal(Window.settingsButton.parent, Window.classicChrome, "settings belongs to native title chrome")
+equal(Window.infoButton.parent, Window.classicChrome, "about belongs to native title chrome")
+equal(Window.conversationBand.lastPoint[3], -27, "Classic retains the requested content layout")
+assert(
+    Window.settingsButton:GetFrameLevel() > Window.classicChrome.NineSlice:GetFrameLevel(),
+    "settings draws above the native title border"
+)
+assert(
+    Window.infoButton:GetFrameLevel() > Window.classicChrome.NineSlice:GetFrameLevel(),
+    "about draws above the native title border"
+)
+assert(Window.settingsButton:IsShown() and Window.infoButton:IsShown(), "title controls stay visible")
+equal(Window.classicChrome.Bg:IsShown(), true, "native bag background is visible")
+equal(Window.background.nativeFill:IsShown(), true, "solid backing prevents the world from bleeding through")
+equal(Window.background.nativeFill.color[4], 1, "Classic backing remains opaque")
+equal(Window.classicChrome.nativeBackgroundColor.a, 1, "native panel color uses opaque alpha")
+equal(Window.sidebar.lastPoint[2], 12, "sidebar starts inside the native border")
+equal(Window.sidebar.lastPoint[3], 8, "sidebar bottom stays inside the native border")
+equal(Window.background.nativeFill.lastPoint[5], 8, "solid backing stays inside the bottom border")
+equal(Window.classicChrome:GetPortrait().width, 36, "portrait matches Forever bag size")
+equal(Window.classicChrome.layout, "HeldBagLayout", "window uses Forever's exact bag border layout")
+assert(Window.classicChrome.nativeBackground, "native panel background colors are applied")
+assert(not Window.classicChrome.NineSlice.TopEdge.lastPoint, "native title-strip anchors remain untouched")
+equal(
+    Window.settingsButton.surface.nativeFill.texture,
+    "Interface\\Buttons\\SquareButtonTextures",
+    "buttons use native square artwork"
+)
+Window.settingsButton.scripts.OnMouseDown()
+Window.settingsButton.scripts.OnMouseUp()
+assert(Window.classicInsets.messages.Bg:IsShown(), "content pane has a visible texture")
+equal(
+    Window.classicInsets.messages.Bg.texture,
+    "Interface\\FrameGeneral\\UI-Background-Rock",
+    "content uses native brown panel texture"
+)
+equal(Window.classicInsets.messages.Bg.vertexColor[4], 1, "textured panel remains opaque")
+assert(Window.classicInsets.messages.shade.gradient, "panel has restrained shading")
+local savedWidth = Window.frame:GetWidth()
+Window.frame:SetWidth(540)
+Window:Layout()
+assert(Window.drawerToggle:IsShown(), "small combined windows show the conversation menu")
+equal(Window.headerAvatar.lastPoint[2], 22, "compact header has no extra portrait indentation")
+equal(Window.drawerToggle.lastPoint[2], Window.classicChrome:GetPortrait(), "compact menu anchors beside portrait")
+equal(Window.drawerToggle.width, 22, "compact menu matches other title controls")
+equal(Window.classicInsets.messages.parent, Window.frame, "panel background belongs to full container")
+equal(Window.classicInsets.messages.lastPoint[2], Window.input, "panel ends above composer rather than viewport")
+equal(Window.classicInsets.messages.lastPoint[3], "TOPRIGHT", "panel fills the reserved scrollbar gutter")
+assert(
+    Window.drawerToggle:GetFrameLevel() > Window.classicChrome.NineSlice:GetFrameLevel(),
+    "compact menu draws above title artwork"
+)
+Window.frame:SetWidth(savedWidth)
+Window:Layout()
+assert(not Window.background.native.backdrop, "native chrome replaces the tooltip border")
+assert(Window.input.surface.native:IsShown(), "flat composer receives native skin")
+assert(not Window.input.surface.nativeInset, "Classic input avoids rounded native inset corners")
+local inputColor = Window.input.surface.nativeFill.color[1]
+Window.input.scripts.OnEditFocusGained(Window.input)
+equal(Window.input.surface.nativeFill.color[1], inputColor, "input focus keeps the same dark fill")
+equal(Window.input.surface.inputEdges[1].color[1], 0.44, "focus subtly highlights square border")
+Window.input.scripts.OnEditFocusLost(Window.input)
+equal(Window.input.surface.inputEdges[1].color[1], 0.25, "blur restores the quiet border")
+equal(Window.messageGrain.alpha, 0, "grain does not obscure native texture")
+local nativeWindow = Window.background.native
+local pooled = addon.UI.Round(frame(), 5, 0.1, 0.1, 0.1)
+pooled.role = "message"
+pooled:SetInsets(24, 40, 0)
+theme:Paint(pooled, "incomingColor")
+local nativeBubble = pooled.native
+assert(not nativeBubble.backdrop, "message bubbles avoid decorative tooltip outlines")
+equal(nativeBubble.lastPoint[4], 0, "bubble body respects right inset")
+pooled:Hide()
+theme:Refresh()
+equal(nativeBubble:IsShown(), false, "refresh keeps released surfaces hidden")
+pooled:SetInsets(0, 0, 40)
+pooled:SetShown(true)
+theme:Paint(pooled, "outgoingColor")
+equal(pooled.native, nativeBubble, "reused bubble retains its native backdrop")
+equal(nativeBubble.lastPoint[4], -40, "reused bubble follows new alignment")
+Whispr.db.global.backgroundOpacity = 0.35
+theme:Refresh()
+equal(pooled.nativeFill.color[4], 0.9, "Classic bubbles retain a readable fill at low panel opacity")
+theme:Paint(pooled, "headerColor", false, true)
+equal(pooled.nativeFill.color[4], 1, "Classic modal backgrounds remain opaque")
+theme:Options().args.incomingColor.set(nil, 0.3, 0.2, 0.1)
+assert(theme:GetSkin(), "custom colors retain Classic textures")
+equal(theme:CurrentPreset(), "custom", "custom colors remain identified correctly")
+assert(theme:Apply("default"))
+equal(nativeWindow:IsShown(), false, "flat theme hides native chrome")
+equal(Window.classicChrome:IsShown(), false, "flat theme hides portrait window")
+assert(Window.brand:IsShown(), "flat theme restores original title")
+equal(Window.settingsButton.parent, Window.titlebar, "flat theme restores settings parent")
+equal(Window.infoButton.parent, Window.titlebar, "flat theme restores about parent")
+equal(Window.conversationBand.lastPoint[3], -39, "flat theme restores toolbar layout")
+equal(nativeBubble:IsShown(), false, "flat theme hides native message backdrops")
+equal(Window.messageGrain.alpha, 0.35, "flat theme restores grain opacity")
+assert(theme:Apply("classic"))
+equal(Window.background.native, nativeWindow, "theme toggles reuse native chrome")
+theme:Apply("default")
+print("Classic live skin changes, custom colors, opacity, insets and backdrop reuse passed.")

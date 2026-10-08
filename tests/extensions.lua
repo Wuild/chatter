@@ -11,6 +11,7 @@ end
 
 Whispr = { db = { global = { extensions = {}, chatFontSize = 19, maxMessages = 350 }, char = { conversations = {} } } }
 load("theme")
+assert(loadfile("tests/support/themes.lua"))(addon)
 load("extensions")
 local api = Whispr.API
 local activated, disabled, seen = 0, 0, 0

@@ -4,6 +4,7 @@
     "LICENSE",
     "scripts/**/*",
     "extensions/**/*",
+    "themes/**/*",
     "locales/**/*",
     "assets/**/*"
   ],

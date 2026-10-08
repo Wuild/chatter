@@ -61,7 +61,7 @@ function Icon:Menu(button, recentOnly)
             local key = conversation.key
             local label = conversation.name
             if (conversation.unread or 0) > 0 then
-                label = label .. " (" .. conversation.unread .. ")"
+                label = string.format(L["%s (%d)"], label, conversation.unread)
             end
 
             menu:CreateButton(label, function()
