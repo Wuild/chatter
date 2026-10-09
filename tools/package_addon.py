@@ -11,7 +11,7 @@ import zipfile
 
 TOC = "Whispr.toc"
 VERSION_PATTERN = r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)"
-RUNTIME_DIRS = ("scripts", "extensions", "locales", "assets")
+RUNTIME_DIRS = ("scripts", "extensions", "themes", "locales", "assets")
 ROOT_FILES = (TOC, "LICENSE")
 RUNTIME_EXTENSIONS = {".lua", ".xml", ".toc", ".tga", ".blp", ".md", ".txt", ".ogg", ".ttf", ".otf"}
 

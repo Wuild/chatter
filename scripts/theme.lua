@@ -3,6 +3,7 @@ local L = addon.L
 local Theme = { surfaces = setmetatable({}, { __mode = "k" }) }
 Theme.grains = setmetatable({}, { __mode = "k" })
 addon.Theme = Theme
+Theme.textureSkins = setmetatable({}, { __mode = "k" })
 Theme.defaults = {
     focusedBorderColor = { 0.15, 0.43, 0.58 },
     unfocusedBorderColor = { 0.24, 0.29, 0.32 },
@@ -19,22 +20,59 @@ Theme.defaults = {
     footerColor = { 0.105, 0.13, 0.15 },
 }
 
+function Theme:GetSkin()
+    local id = Whispr.db and Whispr.db.global.themeSkin
+    local preset = self.presets[id]
+    return preset and self:Available(id) and preset.skin or nil
+end
+
+function Theme:HidesGrain()
+    local skin = self:GetSkin()
+    return skin and skin.hideGrain
+end
+
+function Theme:StyleWindow(window)
+    local skin = self:GetSkin()
+    if window.themeSkin ~= skin and window.themeSkin and window.themeSkin.ReleaseWindow then
+        window.themeSkin:ReleaseWindow(window)
+    end
+
+    window.themeSkin = skin
+    if skin and skin.StyleWindow then
+        skin:StyleWindow(window)
+    end
+end
+
 function Theme:Paint(surface, key, highlight, opaque)
     self.surfaces[surface] = { key, highlight, opaque }
     local profile = Whispr.db and Whispr.db.global or {}
     local color = profile[key] or self.defaults[key]
     local brighten = highlight and 0.05 or 0
-    surface:SetColorTexture(
-        math.min(1, color[1] + brighten),
-        math.min(1, color[2] + brighten),
-        math.min(1, color[3] + brighten),
-        opaque and 1 or (profile.backgroundOpacity or 1)
-    )
+    local red, green, blue =
+        math.min(1, color[1] + brighten), math.min(1, color[2] + brighten), math.min(1, color[3] + brighten)
+    local alpha = opaque and 1 or (profile.backgroundOpacity or 1)
+    local skin = self:GetSkin()
+    if surface.SetSkin then
+        surface:SetSkin(skin, key)
+    else
+        local previous = self.textureSkins[surface]
+        if previous and previous.ReleaseTexture then
+            previous:ReleaseTexture(surface)
+        end
+
+        self.textureSkins[surface] = nil
+        if skin and skin.PaintTexture and skin:PaintTexture(surface, key, red, green, blue, alpha) then
+            self.textureSkins[surface] = skin
+            return
+        end
+    end
+
+    surface:SetColorTexture(red, green, blue, alpha)
 end
 
 function Theme:Refresh()
     for texture in pairs(self.grains) do
-        texture:SetAlpha(Whispr.db.global.backgroundOpacity or 1)
+        texture:SetAlpha(self:HidesGrain() and 0 or (Whispr.db.global.backgroundOpacity or 1))
     end
 
     for surface, style in pairs(self.surfaces) do
@@ -47,11 +85,13 @@ function Theme:Refresh()
     end
 
     if hub.frame then
+        hub:UpdateTheme()
         hub:UpdateOpacity()
     end
 
     for _, window in pairs(hub.popouts or {}) do
         if window.frame then
+            window:UpdateTheme()
             window:UpdateOpacity()
         end
     end
@@ -60,6 +100,7 @@ end
 function Theme:ResetAppearance()
     local profile = Whispr.db.global
     profile.themePreset = "default"
+    profile.themeSkin = "flat"
     for key in pairs(self.defaults) do
         profile[key] = nil
     end
@@ -249,6 +290,30 @@ function Theme:Register(id, definition, owner)
         return nil, L["A theme needs a name and colors"]
     end
 
+    if definition.skin ~= nil then
+        if type(definition.skin) ~= "table" then
+            return nil, L["Invalid theme skin"]
+        end
+
+        for _, hook in ipairs({
+            "ApplySurface",
+            "ReleaseSurface",
+            "LayoutSurface",
+            "ColorSurface",
+            "ShowSurface",
+            "ButtonState",
+            "PaintTexture",
+            "ReleaseTexture",
+            "StyleWindow",
+            "LayoutWindow",
+            "ReleaseWindow",
+        }) do
+            if definition.skin[hook] ~= nil and type(definition.skin[hook]) ~= "function" then
+                return nil, string.format(L["%s must be a function"], hook)
+            end
+        end
+    end
+
     local colors = {}
     for key, value in pairs(definition.colors) do
         if not self.defaults[key] or type(value) ~= "table" then
@@ -266,7 +331,7 @@ function Theme:Register(id, definition, owner)
         end
     end
 
-    self.presets[id] = { name = definition.name, colors = colors, owner = owner }
+    self.presets[id] = { name = definition.name, colors = colors, owner = owner, skin = definition.skin }
     if addon.Settings then
         addon.Settings:Refresh()
     end
@@ -288,6 +353,24 @@ function Theme:Values()
     end
 
     return values
+end
+
+function Theme:SortedIDs()
+    local values, ids = self:Values(), {}
+    for id in pairs(values) do
+        ids[#ids + 1] = id
+    end
+
+    table.sort(ids, function(a, b)
+        if a == "default" or b == "default" then
+            return a == "default"
+        end
+
+        local first, second = values[a]:lower(), values[b]:lower()
+        return first == second and a < b or first < second
+    end)
+
+    return ids
 end
 
 function Theme:CurrentPreset()
@@ -320,6 +403,7 @@ function Theme:Apply(id)
         profile[key] = { color[1], color[2], color[3] }
     end
 
+    profile.themeSkin = preset.skin and id or "flat"
     profile.themePreset = id
     self:Refresh()
     if addon.Extensions then
@@ -328,156 +412,3 @@ function Theme:Apply(id)
 
     return true
 end
-
-Theme:Register("default", { name = "Whispr", colors = {} })
-Theme:Register("midnight", {
-    name = L["Midnight"],
-    colors = {
-        windowColor = { 0.035, 0.045, 0.075 },
-        headerColor = { 0.08, 0.10, 0.16 },
-        sidebarColor = { 0.045, 0.06, 0.10 },
-        conversationColor = { 0.065, 0.085, 0.13 },
-        incomingColor = { 0.10, 0.12, 0.19 },
-        outgoingColor = { 0.14, 0.16, 0.30 },
-        accentColor = { 0.43, 0.46, 0.82 },
-        selectedColor = { 0.16, 0.18, 0.30 },
-        focusedBorderColor = { 0.54, 0.57, 0.92 },
-        unfocusedBorderColor = { 0.18, 0.20, 0.31 },
-        inputColor = { 0.09, 0.11, 0.18 },
-        footerColor = { 0.055, 0.075, 0.12 },
-        buttonColor = { 0.20, 0.23, 0.35 },
-    },
-})
-
-Theme:Register("forest", {
-    name = L["Forest"],
-    colors = {
-        windowColor = { 0.045, 0.07, 0.06 },
-        headerColor = { 0.09, 0.14, 0.12 },
-        sidebarColor = { 0.06, 0.10, 0.08 },
-        conversationColor = { 0.08, 0.13, 0.10 },
-        incomingColor = { 0.11, 0.17, 0.14 },
-        outgoingColor = { 0.12, 0.25, 0.19 },
-        accentColor = { 0.27, 0.58, 0.42 },
-        selectedColor = { 0.12, 0.23, 0.17 },
-        focusedBorderColor = { 0.39, 0.69, 0.50 },
-        unfocusedBorderColor = { 0.19, 0.30, 0.24 },
-        inputColor = { 0.10, 0.16, 0.13 },
-        footerColor = { 0.065, 0.11, 0.085 },
-        buttonColor = { 0.17, 0.26, 0.21 },
-    },
-})
-
-Theme:Register("ember", {
-    name = L["Ember"],
-    colors = {
-        windowColor = { 0.085, 0.055, 0.045 },
-        headerColor = { 0.16, 0.11, 0.09 },
-        sidebarColor = { 0.11, 0.075, 0.06 },
-        conversationColor = { 0.14, 0.095, 0.075 },
-        incomingColor = { 0.18, 0.13, 0.11 },
-        outgoingColor = { 0.30, 0.17, 0.10 },
-        accentColor = { 0.78, 0.39, 0.18 },
-        selectedColor = { 0.25, 0.15, 0.10 },
-        focusedBorderColor = { 0.90, 0.49, 0.24 },
-        unfocusedBorderColor = { 0.33, 0.23, 0.18 },
-        inputColor = { 0.17, 0.12, 0.10 },
-        footerColor = { 0.12, 0.08, 0.065 },
-        buttonColor = { 0.29, 0.20, 0.15 },
-    },
-})
-
-Theme:Register("ocean", {
-    name = L["Ocean"],
-    colors = {
-        windowColor = { 0.0353, 0.0980, 0.1216 },
-        headerColor = { 0.0745, 0.1725, 0.2078 },
-        sidebarColor = { 0.0471, 0.1255, 0.1569 },
-        conversationColor = { 0.0667, 0.1608, 0.1961 },
-        incomingColor = { 0.0941, 0.2000, 0.2431 },
-        outgoingColor = { 0.0863, 0.2784, 0.3569 },
-        accentColor = { 0.1608, 0.6118, 0.7216 },
-        selectedColor = { 0.1020, 0.2471, 0.3020 },
-        focusedBorderColor = { 0.3216, 0.7294, 0.8196 },
-        unfocusedBorderColor = { 0.1765, 0.3137, 0.3608 },
-        inputColor = { 0.0784, 0.1843, 0.2235 },
-        footerColor = { 0.0510, 0.1373, 0.1686 },
-        buttonColor = { 0.1569, 0.3137, 0.3686 },
-    },
-})
-
-Theme:Register("amethyst", {
-    name = L["Amethyst"],
-    colors = {
-        windowColor = { 0.0941, 0.0706, 0.1294 },
-        headerColor = { 0.1647, 0.1255, 0.2118 },
-        sidebarColor = { 0.1137, 0.0902, 0.1569 },
-        conversationColor = { 0.1451, 0.1137, 0.1922 },
-        incomingColor = { 0.1882, 0.1451, 0.2392 },
-        outgoingColor = { 0.2824, 0.1961, 0.3725 },
-        accentColor = { 0.6118, 0.4706, 0.7686 },
-        selectedColor = { 0.2392, 0.1765, 0.3176 },
-        focusedBorderColor = { 0.7451, 0.6000, 0.8863 },
-        unfocusedBorderColor = { 0.2980, 0.2392, 0.3765 },
-        inputColor = { 0.1725, 0.1333, 0.2235 },
-        footerColor = { 0.1294, 0.0980, 0.1725 },
-        buttonColor = { 0.2980, 0.2353, 0.3765 },
-    },
-})
-
-Theme:Register("rosewood", {
-    name = L["Rosewood"],
-    colors = {
-        windowColor = { 0.1255, 0.0706, 0.0824 },
-        headerColor = { 0.2118, 0.1294, 0.1529 },
-        sidebarColor = { 0.1529, 0.0902, 0.1137 },
-        conversationColor = { 0.1882, 0.1255, 0.1529 },
-        incomingColor = { 0.2314, 0.1490, 0.1804 },
-        outgoingColor = { 0.3608, 0.1882, 0.2471 },
-        accentColor = { 0.7608, 0.4627, 0.5647 },
-        selectedColor = { 0.2980, 0.1804, 0.2314 },
-        focusedBorderColor = { 0.8902, 0.6039, 0.6980 },
-        unfocusedBorderColor = { 0.3765, 0.2392, 0.2863 },
-        inputColor = { 0.2000, 0.1333, 0.1686 },
-        footerColor = { 0.1686, 0.1020, 0.1294 },
-        buttonColor = { 0.3412, 0.2196, 0.2627 },
-    },
-})
-
-Theme:Register("slate", {
-    name = L["Slate"],
-    colors = {
-        windowColor = { 0.0706, 0.0784, 0.0863 },
-        headerColor = { 0.1412, 0.1569, 0.1725 },
-        sidebarColor = { 0.0980, 0.1098, 0.1216 },
-        conversationColor = { 0.1255, 0.1412, 0.1569 },
-        incomingColor = { 0.1647, 0.1843, 0.2039 },
-        outgoingColor = { 0.2196, 0.2667, 0.3098 },
-        accentColor = { 0.5451, 0.6706, 0.7255 },
-        selectedColor = { 0.2039, 0.2510, 0.2902 },
-        focusedBorderColor = { 0.6980, 0.7922, 0.8353 },
-        unfocusedBorderColor = { 0.2549, 0.2941, 0.3255 },
-        inputColor = { 0.1529, 0.1765, 0.1961 },
-        footerColor = { 0.1137, 0.1294, 0.1451 },
-        buttonColor = { 0.2392, 0.2824, 0.3176 },
-    },
-})
-
-Theme:Register("sandstone", {
-    name = L["Sandstone"],
-    colors = {
-        windowColor = { 0.1255, 0.1059, 0.0745 },
-        headerColor = { 0.2118, 0.1882, 0.1412 },
-        sidebarColor = { 0.1569, 0.1333, 0.0980 },
-        conversationColor = { 0.1882, 0.1647, 0.1255 },
-        incomingColor = { 0.2314, 0.2000, 0.1529 },
-        outgoingColor = { 0.3176, 0.2706, 0.1725 },
-        accentColor = { 0.7412, 0.6392, 0.4157 },
-        selectedColor = { 0.2745, 0.2353, 0.1686 },
-        focusedBorderColor = { 0.8706, 0.7569, 0.5412 },
-        unfocusedBorderColor = { 0.3686, 0.3216, 0.2510 },
-        inputColor = { 0.2000, 0.1765, 0.1373 },
-        footerColor = { 0.1647, 0.1412, 0.1059 },
-        buttonColor = { 0.3216, 0.2784, 0.2078 },
-    },
-})

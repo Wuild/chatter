@@ -2,8 +2,8 @@
 
 Create a named extension object, then define colon-method lifecycle hooks, as
 with Ace modules. Whispr manages initialization, saved activation preferences,
-message subscriptions and failures. Built-in Emoji, Notification, Keyword actions
-and Character names modules live in their own directories under `extensions/`;
+message subscriptions and failures. Built-in Emoji, Notification, Keyword actions,
+Character names and Floating button modules live in their own directories under `extensions/`;
 each has a `module.lua`.
 
 External extensions remain separate WoW addons with `## Dependencies: Whispr`
@@ -149,6 +149,8 @@ New conversation-scoped events also include a boolean `demo` field.
 | `MESSAGE_RECEIVED` | Conversation identity plus `message`, after incoming whisper routing. |
 | `MESSAGE_SENT` | Conversation identity plus `message`, after dispatch; this does not mean server confirmation. |
 | `MESSAGE_DELIVERY_CHANGED` | Conversation identity plus `message` and `status` (`confirmed` or `unconfirmed`) when a local outgoing record receives an echo or times out. A synchronous echo may arrive before `MESSAGE_SENT`. |
+| `FLOATING_BUTTON_CHANGED` | No arguments. The floating button has been positioned, resized, enabled or disabled. |
+| `UNREAD_CHANGED` | Total unread message count as a number, after the shared unread display refreshes (including reading and deleting conversations). |
 | `CHARACTERS_UPDATED` | No arguments. Character roster metadata has refreshed; cached name rendering may be invalidated. |
 | `THEME_CHANGED` | Applied preset ID as a string. |
 
@@ -184,3 +186,17 @@ Legacy callbacks receive the payload alone, and support the expanded event list.
 To migrate, replace registration with `Whispr:NewExtension`, define `OnInitialize`,
 `OnEnable`, and `OnDisable` methods on the returned object, and use its colon-method
 helpers. Keep the same ID to retain saved settings, enable state, and theme IDs.
+
+The built-in Floating button extension is disabled by default. Enable it under
+Settings → Extensions. It starts just left of the minimap; drag it anywhere on
+screen, or use Reset position to return it beside the minimap. Its settings provide a
+24–96 pixel size slider, a position reset, and three button styles: Rounded
+(a theme-colored tile), Orb (a circular background), and Minimal (icon only).
+Style changes apply immediately. Position, size and style are saved across
+sessions. Click actions match the minimap button, including recent conversations
+in separate-window mode, and the badge displays up to `99+` unread messages.
+
+Notification’s **Attach to HUD** option anchors alerts beside the enabled floating
+button, following its position and size. Alerts grow above or below it toward the
+center of the screen. Disabling the floating button restores the saved notification
+position; enabling it attaches the alerts again.

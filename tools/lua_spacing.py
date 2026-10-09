@@ -94,7 +94,7 @@ def format_spacing(source):
 
 
 def source_files():
-    for directory in ("scripts", "extensions", "locales", "tests"):
+    for directory in ("scripts", "extensions", "themes", "locales", "tests"):
         for path in sorted((ROOT / directory).rglob("*.lua")):
             if not path.is_relative_to(ROOT / "scripts/libraries"):
                 yield path

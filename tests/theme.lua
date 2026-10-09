@@ -10,6 +10,7 @@ end
 
 assert(loadfile("scripts/config.lua"))("Whispr", addon)
 assert(loadfile("scripts/theme.lua"))("Whispr", addon)
+assert(loadfile("tests/support/themes.lua"))(addon)
 local defaults = addon.defaults.global
 local conversation = { messages = { { text = "keep" } } }
 Whispr.db = {
@@ -91,5 +92,59 @@ for id, preset in pairs(addon.Theme.presets) do
     end
 end
 
-assert(count == 9, "nine built-in palettes")
-print("All nine palettes apply and preserve extension preferences.")
+assert(count == 10, "ten built-in themes")
+print("All ten themes apply and preserve extension preferences.")
+
+assert(addon.Theme:Apply("classic"))
+assert(addon.Theme:GetSkin(), "Classic selects the textured skin")
+addon.Theme:ResetAppearance()
+assert(not addon.Theme:GetSkin(), "appearance reset restores the flat skin")
+
+local ids, values = addon.Theme:SortedIDs(), addon.Theme:Values()
+assert(ids[1] == "default" and values.default == "Default", "Default is first by name")
+for index = 3, #ids do
+    assert(values[ids[index - 1]]:lower() <= values[ids[index]]:lower(), "remaining themes sort by display name")
+end
+
+local released, styled, textureReleased = 0, 0, 0
+local skin = {
+    StyleWindow = function(_, window)
+        window.customArtwork = true
+        styled = styled + 1
+    end,
+
+    ReleaseWindow = function(_, window)
+        window.customArtwork = nil
+        released = released + 1
+    end,
+
+    PaintTexture = function(_, texture, key)
+        if key == "headerColor" then
+            texture.artwork = "custom-header"
+            return true
+        end
+    end,
+
+    ReleaseTexture = function(_, texture)
+        texture.artwork = nil
+        textureReleased = textureReleased + 1
+    end,
+}
+
+assert(addon.Theme:Register("test-skin", { name = "Test skin", colors = {}, skin = skin }))
+assert(not addon.Theme:Register("broken-skin", { name = "Invalid", colors = {}, skin = { StyleWindow = true } }))
+local window, texture = {}, { SetColorTexture = function() end }
+assert(addon.Theme:Apply("test-skin"))
+addon.Theme:StyleWindow(window)
+addon.Theme:Paint(texture, "headerColor")
+assert(
+    styled == 1 and window.customArtwork and texture.artwork == "custom-header",
+    "theme modules can replace window and panel artwork"
+)
+addon.Theme:Options().args.headerColor.set(nil, 0.2, 0.3, 0.4)
+assert(addon.Theme:GetSkin() == skin, "custom colors retain module hooks")
+assert(addon.Theme:Apply("default"))
+addon.Theme:StyleWindow(window)
+assert(released == 1 and not window.customArtwork, "switching themes releases previous window skin")
+assert(textureReleased > 0 and not texture.artwork, "switching themes removes custom textures")
+print("Theme module hooks, validation, cleanup, custom colors and name sorting passed.")

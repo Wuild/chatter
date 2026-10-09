@@ -132,6 +132,7 @@ end
 load("ui")
 load("format")
 addon.Window = {
+    UpdateTheme = noop,
     frame = frame(),
     detached = {},
     Open = function(self, key)
@@ -317,6 +318,7 @@ assert(n.frames[1].logo.texture:find("whispr-icon.tga", 1, true), "pooled unknow
 equal(n.frames[1].sender.textColor[1], addon.UI.colors.text[1], "pooled unknown sender resets class color")
 equal(n.frames[1].logo.texCoords[2], 1, "fallback restores full texture coordinates")
 load("theme")
+assert(loadfile("tests/support/themes.lua"))(addon)
 addon.Window.UpdateOpacity = function() end
 Whispr.db.global.windowColor = { 0.2, 0.3, 0.4 }
 Whispr.db.global.accentColor = { 0.7, 0.6, 0.5 }
@@ -379,3 +381,38 @@ equal(n.frames[1].alpha, 0.2, "notification cannot become entirely invisible")
 opts.set({ "opacity" }, 1)
 equal(n.frames[1].alpha, 1, "full opacity restored")
 print("Notification opacity updates live and survives frame reuse.")
+
+function methods:SetPoint(...)
+    self.lastPoint = { ... }
+end
+
+C_Timer = {
+    After = function(_, callback)
+        callback()
+    end,
+}
+
+local hudModule = Whispr:NewExtension("floating_button")
+hudModule.frame = frame()
+hudModule.frame.x, hudModule.frame.y = -100, -100
+addon.Extensions:Activate("floating_button")
+opts.set({ "attachToHUD" }, true)
+equal(n.anchor.lastPoint[2], hudModule.frame, "HUD option attaches to floating button")
+equal(n.anchor.lastPoint[1], "BOTTOMLEFT", "lower-left HUD stacks toward screen center")
+equal(opts.args.anchor.disabled(), true, "attached notification anchor cannot be dragged separately")
+local savedX, savedY = settings.x, settings.y
+hudModule.frame.x, hudModule.frame.y = 100, 100
+addon.Extensions:Emit("FLOATING_BUTTON_CHANGED")
+equal(n.anchor.lastPoint[1], "TOPRIGHT", "upper-right HUD stacks toward screen center")
+equal(settings.x, savedX, "attachment preserves saved horizontal position")
+equal(settings.y, savedY, "attachment preserves saved vertical position")
+hudModule:Disable()
+addon.Extensions:Emit("FLOATING_BUTTON_CHANGED")
+equal(n.anchor.lastPoint[2], UIParent, "disabled HUD restores standalone notification position")
+equal(opts.args.anchor.disabled(), false, "standalone anchor can be moved")
+hudModule:Enable()
+addon.Extensions:Emit("FLOATING_BUTTON_CHANGED")
+equal(n.anchor.lastPoint[2], hudModule.frame, "reenabling HUD reattaches notifications")
+opts.set({ "attachToHUD" }, false)
+equal(n.anchor.lastPoint[2], UIParent, "turning attachment off restores standalone position")
+print("HUD attachment, screen direction, saved position and disabled HUD fallback passed.")

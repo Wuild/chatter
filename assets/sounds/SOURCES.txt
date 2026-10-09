@@ -1,4 +1,4 @@
-Linux samples copied unchanged from this computer's active GNOME sound theme:
+Linux samples originally sourced from this computer's active GNOME sound theme:
 org.gnome.desktop.sound theme-name = freedesktop
 
 soft-ping.ogg: /usr/share/sounds/freedesktop/stereo/message.oga
@@ -14,10 +14,22 @@ supplied-notification.ogg: user-supplied universfield-new-notification-09-352705
 Trimmed from 0.09 to 0.72 seconds with 3 ms start and 40 ms end fades.
 Encoded as stereo Vorbis at 48 kHz. No claim of original authorship.
 
-WIM classic sounds copied unchanged from the original MIT-licensed repository:
+WIM classic sounds originally sourced from the original MIT-licensed repository:
 https://github.com/sylvanaar/wow-instant-messenger
 Pinned revision: acacc74e0448b1b63e6243dbbf3dc5dbec9dc05b
 wim-whisper.ogg: Sounds/wisp.OGG (registered by WIM as "IM")
 wim-chat-blip.ogg: Sounds/chat.OGG (registered by WIM as "Chat Blip")
 Copyright (c) 2020 Sylvanaar (Jon S Akhtar).
 See WIM-LICENSE.txt for the included MIT license. WIM installation is not required.
+
+Whispr loudness adjustment (2026-10-08):
+All ten files have been re-encoded as Vorbis quality 6 after gain adjustment and
+lookahead peak limiting. Original sample rates, channels and durations are retained.
+The loudest 100 ms RMS window targets -12 dBFS (within 1 dB), avoiding quiet tails
+skewing the level of short pings. Decoded 192 kHz oversampled peaks were checked
+below -0.5 dBFS. The limiter uses a -3 dB ceiling before Vorbis encoding to allow
+for reconstruction overshoot. This improves consistency but different timbres and
+durations can still sound different in-game.
+Rebuild from original, unprocessed sources using:
+python3 tools/normalize_sounds.py ORIGINAL_DIRECTORY OUTPUT_DIRECTORY
+Do not use these processed files as the input for repeated re-encoding.

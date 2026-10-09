@@ -33,6 +33,23 @@ function Window:ApplySeparateSize()
     end
 end
 
+function Window:UpdateScreenClamping()
+    local hub = self.owner or self
+
+    local function update(window)
+        if window.frame then
+            window:SaveGeometry()
+            window.frame:SetClampedToScreen(Whispr.db.global.clampWindowsToScreen ~= false)
+            window:RestoreGeometry()
+        end
+    end
+
+    update(hub)
+    for _, window in pairs(hub.popouts or {}) do
+        update(window)
+    end
+end
+
 function Window:GeometryRecord()
     if not self.owner then
         return Whispr.db.char
@@ -83,14 +100,13 @@ function Window:RestoreGeometry()
     local maxY = math.max(0, (parentHeight - height * ratio) / 2 - 8)
     local x = finite(saved.x) and saved.x * parentWidth or 0
     local y = finite(saved.y) and saved.y * parentHeight or 0
+    if Whispr.db.global.clampWindowsToScreen ~= false then
+        x = math.max(-maxX, math.min(maxX, x))
+        y = math.max(-maxY, math.min(maxY, y))
+    end
+
     self.frame:ClearAllPoints()
-    self.frame:SetPoint(
-        "CENTER",
-        UIParent,
-        "CENTER",
-        math.max(-maxX, math.min(maxX, x)) / ratio,
-        math.max(-maxY, math.min(maxY, y)) / ratio
-    )
+    self.frame:SetPoint("CENTER", UIParent, "CENTER", x / ratio, y / ratio)
 end
 
 function Window:RestoreUndocked()
@@ -178,6 +194,10 @@ function Window:RefreshUnread()
 
     if addon.Minimap then
         addon.Minimap:UpdateUnread(total)
+    end
+
+    if addon.Extensions then
+        addon.Extensions:Emit("UNREAD_CHANGED", total)
     end
 
     if not hub.unreadBadge then
@@ -423,12 +443,20 @@ function Window:Close()
     self:AnimateOpacity(0, 0.14)
 end
 
+function Window:UpdateTheme()
+    addon.Theme:StyleWindow(self)
+    self:UpdateBorder()
+    if self.geometryReady then
+        self:Layout()
+    end
+end
+
 function Window:UpdateBorder()
     if not self.focusBorder then
         return
     end
 
-    self.focusBorder:SetShown(self.frame:IsShown())
+    self.focusBorder:SetShown(self.frame:IsShown() and not self.themeHidesBorder)
     local key = self.focused and "focusedBorderColor" or "unfocusedBorderColor"
     local color = Whispr.db.global[key] or addon.Theme.defaults[key]
     for _, edge in ipairs(self.focusBorder.edges) do
@@ -483,8 +511,26 @@ function Window:Layout()
 
     local width = self.frame:GetWidth()
     self.compact = not self.owner and width < 680
-    local left = not self.owner and not self.compact and SIDEBAR_WIDTH or 0
-    local contentWidth = width - left
+    local innerLeft = self.themeContentLeft or 0
+    local innerRight = self.themeContentRight or 0
+    local innerBottom = self.themeContentBottom or 0
+    local sidebarWidth = not self.owner and not self.compact and SIDEBAR_WIDTH or 0
+    local left = innerLeft + sidebarWidth
+    local contentWidth = width - left - innerRight
+    local top = self.themeContentTop or 39
+    local portraitInset = sidebarWidth == 0 and (self.themePortraitInset or 0) or 0
+    self.sidebar:ClearAllPoints()
+    self.sidebar:SetPoint("TOPLEFT", innerLeft, -top)
+    self.sidebar:SetPoint("BOTTOMLEFT", innerLeft, innerBottom)
+    self.drawerShade:ClearAllPoints()
+    self.drawerShade:SetPoint("TOPLEFT", math.max(1, innerLeft), -top)
+    self.drawerShade:SetPoint("BOTTOMRIGHT", -math.max(1, innerRight), math.max(1, innerBottom))
+    local searchInset = self.themeSearchInset or 0
+    self.search:SetTextInsets(32 + searchInset, 30, 0, 0)
+    self.searchIcon:ClearAllPoints()
+    self.searchIcon:SetPoint("LEFT", 10 + searchInset, 0)
+    self.searchPlaceholder:ClearAllPoints()
+    self.searchPlaceholder:SetPoint("LEFT", 32 + searchInset, 0)
     local composerHeight = math.max(48, (Whispr.db.global.chatFontSize or 14) + 24)
     self.input:SetHeight(composerHeight)
     if self.input.RefreshFormatting then
@@ -492,8 +538,8 @@ function Window:Layout()
     end
 
     self.footer:ClearAllPoints()
-    self.footer:SetPoint("BOTTOMLEFT", math.max(1, left), 1)
-    self.footer:SetPoint("BOTTOMRIGHT", -1, 1)
+    self.footer:SetPoint("BOTTOMLEFT", math.max(1, left), math.max(1, innerBottom))
+    self.footer:SetPoint("BOTTOMRIGHT", -math.max(1, innerRight), math.max(1, innerBottom))
     self.footer:SetHeight(composerHeight + 1)
     self.drawerToggle:SetShown(self.compact)
     self.brandIcon:ClearAllPoints()
@@ -502,35 +548,37 @@ function Window:Layout()
     self.brand:SetPoint("LEFT", self.brandIcon, "RIGHT", 7, 0)
     self:SetDrawer(self.drawerOpen)
     self.conversationBand:ClearAllPoints()
-    self.conversationBand:SetPoint("TOPLEFT", math.max(1, left), -39)
-    self.conversationBand:SetPoint("TOPRIGHT", -1, -39)
+    self.conversationBand:SetPoint("TOPLEFT", math.max(1, left), -top)
+    self.conversationBand:SetPoint("TOPRIGHT", -math.max(1, innerRight), -top)
+    self.pop:ClearAllPoints()
+    self.pop:SetPoint("TOPRIGHT", -10 - innerRight, -top - 10)
     self.headerAvatar:ClearAllPoints()
-    self.headerAvatar:SetPoint("TOPLEFT", left + 10, -48)
+    self.headerAvatar:SetPoint("TOPLEFT", left + 10 + portraitInset, -top - 9)
     self.header:ClearAllPoints()
-    self.header:SetPoint("TOPLEFT", left + 46, -46)
-    local showLocation = contentWidth >= 620
-    self.location:SetShown(showLocation)
-    self.location:ClearAllPoints()
-    self.location:SetPoint("TOPRIGHT", -138, -47)
-    self.header:SetWidth(contentWidth - (showLocation and 320 or 184))
+    self.header:SetPoint("TOPLEFT", left + 46 + portraitInset, -top - 7)
+    self.header:SetWidth(contentWidth - portraitInset - 184)
     self.subtitle:ClearAllPoints()
-    self.subtitle:SetPoint("TOPLEFT", left + 46, -64)
-    self.subtitle:SetWidth(contentWidth - 184)
+    self.subtitle:SetPoint("TOPLEFT", left + 46 + portraitInset, -top - 25)
+    self.subtitle:SetWidth(contentWidth - portraitInset - 184)
     self.divider:ClearAllPoints()
-    self.divider:SetPoint("TOPLEFT", left, -83)
-    self.divider:SetPoint("TOPRIGHT", -1, -83)
+    self.divider:SetPoint("TOPLEFT", left, -top - 44)
+    self.divider:SetPoint("TOPRIGHT", -math.max(1, innerRight), -top - 44)
     self.scroll:ClearAllPoints()
-    self.scroll:SetPoint("TOPLEFT", left + 4, -88)
-    self.scroll:SetPoint("BOTTOMRIGHT", -12, composerHeight + 8)
+    self.scroll:SetPoint("TOPLEFT", left + 4, -top - 49)
+    self.scroll:SetPoint("BOTTOMRIGHT", -12 - innerRight, composerHeight + 8 + innerBottom)
     self.input:ClearAllPoints()
-    self.input:SetPoint("BOTTOMLEFT", math.max(1, left), 1)
-    self.input:SetWidth(width - math.max(1, left) - 1)
+    self.input:SetPoint("BOTTOMLEFT", math.max(1, left), math.max(1, innerBottom))
+    self.input:SetWidth(width - math.max(1, left) - math.max(1, innerRight))
     self.placeholder:SetWidth(contentWidth - 80)
     if self.url then
         self.url:SetWidth(math.min(420, width - 24))
         self.url.input:SetWidth(self.url:GetWidth() - 32)
         self.url.title:SetWidth(self.url:GetWidth() - 106)
         self.url.subtitle:SetWidth(self.url:GetWidth() - 94)
+    end
+
+    if self.themeSkin and self.themeSkin.LayoutWindow then
+        self.themeSkin:LayoutWindow(self)
     end
 
     self.emptyTitle:SetWidth(contentWidth - 28)
@@ -986,7 +1034,6 @@ function Window:RefreshIdentity()
         details ~= "" and details or (conversation and L["Private conversation"] or L["Your conversations, together."])
     )
     self.headerAvatar:SetCharacter(conversation)
-    self.location:SetText(conversation and conversation.character and conversation.character.area or "")
     self:RefreshHeaderActions()
 end
 
@@ -1129,16 +1176,26 @@ end
 function Window:AddConversationMenuEntries(menu, key, includePlayerActions)
     local conversation = History.Get(key)
     if not Whispr.db.global.separateWindows then
-        local move = menu:CreateButton(
-            self.owner and L["Dock in main window"] or L["Open in separate window"],
-            function()
-                if self.owner then
-                    self:Dock()
-                elseif conversation then
-                    self:Detach(conversation.key)
-                end
+        local label = self.owner and L["Dock in main window"] or L["Open in separate window"]
+
+        local function moveConversation()
+            if self.owner then
+                self:Dock()
+            elseif History.Get(key) then
+                self:Detach(key)
             end
-        )
+        end
+
+        local move
+        if not includePlayerActions and menu.Insert and MenuUtil.CreateButton then
+            -- Native player menus start with the character title. Put our
+            -- window action directly beneath it, ahead of player interactions.
+            move = MenuUtil.CreateButton(label, moveConversation)
+            menu:Insert(move, 2)
+        else
+            move = menu:CreateButton(label, moveConversation)
+        end
+
         move:SetEnabled(conversation ~= nil)
     end
 
@@ -1523,6 +1580,7 @@ local function createMessageFrame(self)
     local scroll = self.scroll
     local bubble = CreateFrame("Frame", nil, scroll.content)
     bubble.background = UI.Round(bubble, 5, 0.15, 0.17, 0.19)
+    bubble.background.role = "message"
     bubble.meta = UI.Text(bubble, "", "GameFontDisableSmall")
     bubble.meta:SetPoint("TOPLEFT", 10, -7)
     bubble.meta:SetTextColor(0.64, 0.73, 0.78)
@@ -1687,6 +1745,19 @@ local function measureMessage(bubble, message, conversation, maxWidth, grouped)
 
     local height = math.ceil(math.max(fontSize or 12, bubble.text:GetStringHeight()))
     bubble.textHeight = height
+    local layout = bubble.selectionLayout
+    local singleLine = layout and #layout.lines == 1
+        or (
+            not layout
+            and height < 2 * (fontSize or 12)
+            and not rendered:find("\n", 1, true)
+            and naturalWidth <= bodyWidth - 20
+        )
+    -- A single native line includes descent/leading below the nominal font
+    -- height. Center that visible line rather than the extra space beneath it.
+    -- Keep the full text region for textures, descenders and selection bounds.
+    local baselineOffset = math.min((fontSize or 12) / 6, math.max(0, (height - (fontSize or 12)) / 2))
+    bubble.textBaselineOffset = singleLine and baselineOffset or 0
     return width, height + textTop + 8, rendered
 end
 
@@ -1802,7 +1873,9 @@ function Window:UpdateVisibleMessages()
                     measureMessage(bubble, message, conversation, self.messageMaxWidth, row.grouped)
                 bubble:SetSize(width, row.height)
                 bubble.text:ClearAllPoints()
-                local textOffset = bubble.bodyTop + (row.height - bubble.bodyTop - bubble.textHeight) / 2
+                local textOffset = bubble.bodyTop
+                    + (row.height - bubble.bodyTop - bubble.textHeight) / 2
+                    + bubble.textBaselineOffset
                 bubble.text:SetPoint("TOPLEFT", bubble.bodyLeft + 10, -textOffset)
                 bubble.text:SetHeight(bubble.textHeight)
                 bubble.text:SetJustifyV("TOP")
@@ -2085,7 +2158,7 @@ function Window:Create()
     )
     frame:SetScale(math.min(1, (UIParent:GetWidth() - 40) / width, (UIParent:GetHeight() - 40) / height))
     frame:SetFrameStrata("LOW")
-    frame:SetClampedToScreen(true)
+    frame:SetClampedToScreen(Whispr.db.global.clampWindowsToScreen ~= false)
     frame:SetMovable(true)
     frame:EnableMouse(true)
     frame:SetToplevel(true)
@@ -2093,6 +2166,8 @@ function Window:Create()
     frame:SetResizeBounds(360, 280)
     self:RestoreGeometry()
     self.background = UI.Round(frame, 6, 0.075, 0.085, 0.095)
+    self.background.windowChrome = true
+    self.background.role = "window"
     if addon.Theme then
         addon.Theme:Paint(self.background, "windowColor")
     end
@@ -2165,6 +2240,7 @@ function Window:Create()
     end)
 
     local titlebar = CreateFrame("Frame", nil, frame)
+    self.titlebar = titlebar
     titlebar:SetPoint("TOPLEFT", 1, -1)
     titlebar:SetPoint("TOPRIGHT", -1, -1)
     titlebar:SetHeight(38)
@@ -2209,6 +2285,7 @@ function Window:Create()
     end)
 
     close:SetPoint("RIGHT", -8, 0)
+    self.themeTitleParts = { titleBackground, titleEdge, self.brandIcon, brand, dot, close }
     self.settingsButton = UI.IconButton(titlebar, "settings", L["Settings"], 24, function()
         Whispr:ShowSettings()
     end)
@@ -2253,6 +2330,7 @@ function Window:Create()
     self.search:SetTextInsets(32, 30, 0, 0)
     self.search:SetMaxBytes(100)
     local searchIcon = self.search:CreateTexture(nil, "ARTWORK")
+    self.searchIcon = searchIcon
     searchIcon:SetTexture("Interface\\AddOns\\Whispr\\assets\\icons\\search.tga")
     searchIcon:SetSize(14, 14)
     searchIcon:SetPoint("LEFT", 10, 0)
@@ -2385,12 +2463,6 @@ function Window:Create()
     self.headerMenu:SetAllPoints(self.header)
     self.headerMenu:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     self.headerMenu:SetScript("OnClick", openPlayerMenu)
-    self.location = UI.Text(frame, "", "GameFontHighlightSmall")
-    self.location:SetPoint("TOPRIGHT", -48, -47)
-    self.location:SetWidth(130)
-    self.location:SetJustifyH("RIGHT")
-    self.location:SetWordWrap(false)
-    self.location:SetTextColor(unpack(UI.colors.muted))
     self.subtitle = UI.Text(frame, "", "GameFontHighlightSmall")
     self.subtitle:SetPoint("TOPLEFT", left + 46, -64)
     self.subtitle:SetTextColor(unpack(UI.colors.muted))
@@ -2637,6 +2709,7 @@ function Window:Create()
     end
 
     self.focusBorder:Hide()
+    self:UpdateTheme()
     self:InstallWindowFocus()
     self.geometryReady = true
     self:Layout()

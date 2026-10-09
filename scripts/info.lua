@@ -8,13 +8,15 @@ function Info.Version()
     return metadata and metadata(addon.name or "Whispr", "Version") or L["Unknown"]
 end
 
-Info.about = table.concat({
-    L["A little closer, even in Azeroth."],
-    "",
-    L["A dedicated home for your whispers, with saved conversations, smileys and live typing indicators."],
-    "",
-    L["Created by Wuild. Your support helps Whispr grow."],
-}, "\n")
+addon.Locale:OnReady(function()
+    Info.about = table.concat({
+        L["A little closer, even in Azeroth."],
+        "",
+        L["A dedicated home for your whispers, with saved conversations, smileys and live typing indicators."],
+        "",
+        L["Created by Wuild. Your support helps Whispr grow."],
+    }, "\n")
+end)
 
 function Info.Layout(window)
     local box = window.info

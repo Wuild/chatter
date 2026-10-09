@@ -2,21 +2,28 @@ local _, addon = ...
 local L = addon.L
 local Settings = {}
 addon.Settings = Settings
-Settings.categories = {
-    {
-        "general",
-        L["General"],
-        L["Settings are shared across all your characters. Choose how Whispr opens and behaves while you play."],
-    },
+addon.Locale:OnReady(function()
+    Settings.categories = {
+        {
+            "general",
+            L["General"],
+            L["Settings are shared across all your characters. Choose how Whispr opens and behaves while you play."],
+        },
 
-    { "messages", L["Messages"], L["Control message formatting, previews and typing indicators."] },
-    { "appearance", L["Appearance"], L["Adjust readability, transparency and animations."] },
-    { "themes", L["Themes"], L["Choose a palette, then fine-tune individual colors."] },
-    { "notifications", L["Notifications"], L["Choose the sound for incoming whispers."] },
-    { "history", L["History"], L["Manage how much conversation history Whispr keeps."] },
-    { "extensions", L["Extensions"], L["Enable extensions here. Open their pages in the menu to adjust settings."] },
-    { "debug", L["Debug"], L["Test messages, notifications and typing locally."] },
-}
+        { "messages", L["Messages"], L["Control message formatting, previews and typing indicators."] },
+        { "appearance", L["Appearance"], L["Adjust readability, transparency and animations."] },
+        { "themes", L["Themes"], L["Choose a palette, then fine-tune individual colors."] },
+        { "notifications", L["Notifications"], L["Choose the sound for incoming whispers."] },
+        { "history", L["History"], L["Manage how much conversation history Whispr keeps."] },
+        {
+            "extensions",
+            L["Extensions"],
+            L["Enable extensions here. Open their pages in the menu to adjust settings."],
+        },
+
+        { "debug", L["Debug"], L["Test messages, notifications and typing locally."] },
+    }
+end)
 
 local function option(kind, name, order, description)
     return { type = kind, name = name, order = order, desc = description, width = kind == "toggle" and "full" or nil }
@@ -36,6 +43,18 @@ end
 function Settings:Options()
     local profile = Whispr.db.global
     local general = {
+        clampWindowsToScreen = {
+            type = "toggle",
+            name = L["Keep windows on screen"],
+            desc = L["Prevent chat windows from moving beyond the screen edges. Disable to allow off-screen positions."],
+            order = 3,
+            width = "full",
+            set = function(_, value)
+                profile.clampWindowsToScreen = value
+                addon.Window:UpdateScreenClamping()
+            end,
+        },
+
         showAllCharacters = option(
             "toggle",
             L["Show conversations from all characters"],
@@ -250,6 +269,10 @@ function Settings:Options()
                 return addon.Theme:Values()
             end,
 
+            sorting = function()
+                return addon.Theme:SortedIDs()
+            end,
+
             get = function()
                 return addon.Theme:CurrentPreset()
             end,
@@ -264,7 +287,7 @@ function Settings:Options()
         hint = {
             type = "description",
             order = 2,
-            name = L["Presets change colors only. Your fonts, opacity and chat behavior stay as they are. Changing an individual color creates a custom palette."],
+            name = L["Classic uses textured WoW panels and borders. Other presets use flat panels. Fonts, opacity and chat behavior stay as they are. Custom colors keep the selected style."],
         },
 
         colors = { type = "group", name = L["Customize colors"], inline = true, order = 3, args = {} },
@@ -336,12 +359,48 @@ function Settings:Options()
     end
 
     general = {
+        language = {
+            type = "group",
+            name = L["Language"],
+            inline = true,
+            order = 0,
+            args = {
+                locale = {
+                    type = "select",
+                    name = L["Language"],
+                    order = 1,
+                    desc = L["Choose Whispr's language. Reload the UI to apply the change."],
+                    values = { auto = L["Automatic (game language)"], enUS = "English", deDE = "Deutsch" },
+                    get = function()
+                        local selected = profile.locale
+                        return (selected == "enUS" or selected == "deDE") and selected or "auto"
+                    end,
+
+                    set = function(_, value)
+                        if value == "auto" or value == "enUS" or value == "deDE" then
+                            profile.locale = value
+                        end
+                    end,
+                },
+
+                reload = {
+                    type = "execute",
+                    name = L["Reload UI"],
+                    order = 2,
+                    func = function()
+                        ReloadUI()
+                    end,
+                },
+            },
+        },
+
         conversations = section(L["Conversations"], 1, general, {
             "separateWindows",
             "autoOpenConversations",
             "autoSelectIncoming",
             "showAllCharacters",
             "suppressWhispers",
+            "clampWindowsToScreen",
         }),
 
         combat = section(L["During combat"], 2, general, { "hideInCombat", "dontHideWhenTyping", "noOpenInCombat" }),

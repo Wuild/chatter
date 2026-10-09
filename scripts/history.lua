@@ -133,7 +133,9 @@ local function copyCharacter(info)
 
     local copy = {}
     for field, value in pairs(info) do
-        copy[field] = value
+        if field ~= "area" then
+            copy[field] = value
+        end
     end
 
     return copy
@@ -150,7 +152,7 @@ local function mergeIdentity(target, source)
     end
 
     -- Fill identity gaps in older routing-only records. Do not resurrect a
-    -- cleared guild/location from an older character's history.
+    -- cleared guild from an older character's history.
     for _, field in ipairs({ "guid", "race", "class", "classFile" }) do
         if not target.character[field] or target.character[field] == "" then
             target.character[field] = source[field]

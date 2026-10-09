@@ -190,6 +190,12 @@ menu.CreateDivider = function()
 end
 
 UnitPopup_OpenMenu = function(which, context)
+    assert(context.chatType == nil and context.chatTarget == nil, "Whispr menu omits native whisper popout context")
+    assert(context.name ~= nil, "native whisper and player actions retain their target")
+    if which == "BN_FRIEND" then
+        assert(context.bnetIDAccount == id, "Battle.net actions retain their account target")
+    end
+
     modifiers["MENU_UNIT_" .. which](nil, menu, context)
 end
 
@@ -200,6 +206,8 @@ end
 
 assert(addon.Actions:OpenPlayerMenu(person.key, appendEntries), "extended native menu opens")
 assert(appended == 1 and dividers == 1, "native menu gets conversation actions after divider")
+assert(addon.Actions:Context(person).chatType == "WHISPER", "reporting keeps character whisper context")
+assert(addon.Actions:Context(bn).chatType == "BN_WHISPER", "reporting keeps Battle.net whisper context")
 addon.Actions:OpenPlayerMenu(person.key, appendEntries)
 assert(appended == 2 and registrations == 1, "register modifier once per menu type")
 modifiers.MENU_UNIT_PLAYER(nil, menu, {})

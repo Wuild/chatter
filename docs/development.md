@@ -93,21 +93,79 @@ upstream formatting and license notices.
 
 ## Localization
 
-English is the base language in `locales/enUS.lua`. Untranslated locales and
+English is the base language in `locales/enUS.lua`; `locales/deDE.lua` provides
+the complete German translation and loads automatically on German clients. Untranslated locales and
 missing translations fall back to English through AceLocale.
 
 To add a language:
 
-1. Create `locales/<locale>.lua` and register it with
-   `LibStub("AceLocale-3.0"):NewLocale("Whispr", "<locale>")`.
-2. Return immediately if registration returns nil, then assign translations to
-   the existing English keys.
-3. Add the file to `Whispr.toc` after `locales/enUS.lua` and before
-   `scripts/locale.lua`.
+1. Create `locales/<locale>.lua`, obtain the addon namespace with
+   `local _, addon = ...`, then register it with `addon.Locale:Register("<locale>")`.
+2. Fill the returned table using existing English keys. Registration loads every
+   bundled catalog, allowing language selection independent of the game client.
+3. Add the file to `Whispr.toc` after `scripts/locale.lua` and `locales/enUS.lua`,
+   before other scripts. Add its native display name to the language selector and
+   include the locale in the supported choices in `Locale:Initialize`.
 
-Keep `%s` and `%d` placeholders and their argument order intact. `%H:%M` and
+General → Language selects Automatic, English or Deutsch. The choice is saved
+account-wide and applies after a UI reload. `Locale:Initialize` runs after AceDB
+loads saved settings; localized module/theme registration and eager label tables
+use `addon.Locale:OnReady` so they use the selected language. Runtime lookups keep
+the same `addon.L` table. Other addons' AceLocale state and game locale are unchanged.
+
+Keep `%s` and `%d` placeholders and their argument order intact. German uses
+informal singular address (du/dein), localized WoW class/race labels, and
+day–month–year dates. `%H:%M` and
 `%B %d, %Y` are date formats. Keep saved keys, extension IDs, commands, asset paths,
 and proper names unchanged. Modules read translations through `addon.L`.
 
 Run `luajit tests/locales.lua` to check coverage, fallback behavior, and stable
-identifiers. Extensions provide their own translated labels when registering.
+identifiers. The check rejects missing, duplicate and unused English entries,
+and exercises the newer extension settings and localized sample dialogue.
+Keep the English catalog alphabetized. Fictional character and guild names,
+class tokens and sample IDs remain stable; sample dialogue and race/class display
+labels belong in the locale catalog. Extensions provide their own translated
+labels when registering.
+
+## Theme modules
+
+Themes live in `themes/<id>/theme.lua` and register with
+`addon.Theme:Register(id, { name = ..., colors = {}, skin = ... })`. Add the file
+to `Whispr.toc` after the theme manager. The build, formatter, lint and locale
+checks include this folder. Default appears first in settings; other entries
+sort by their translated display names.
+
+Colors are optional overrides of the shared palette. The optional `skin` table
+can replace artwork and change UI elements through these methods (called with
+`skin` as `self`):
+
+- `StyleWindow(window)` / `LayoutWindow(window)` / `ReleaseWindow(window)`: customize and restore the
+  window, title, controls, and other elements. Applies to combined and separate windows.
+- `ApplySurface(surface, colorKey)` / `ReleaseSurface(surface)`: install and
+  remove custom surface artwork. `surface.parent` is the owning frame; `role`
+  identifies `window`, `message`, `input`, `button`, or `panel`.
+- `ColorSurface(surface, r, g, b, alpha)`: apply palette colors and opacity.
+- `LayoutSurface(surface, top, left, right)`: follow changing message/body insets.
+- `ShowSurface(surface, shown)`: respect hidden and pooled elements.
+- `ButtonState(surface, state)`: handle `down` and `up` button states.
+- `PaintTexture(texture, colorKey, r, g, b, alpha)`: return true when replacing a
+  simple panel texture; return false/nil to use the palette's solid color.
+- `ReleaseTexture(texture)`: restore texture state before repainting.
+
+Set `hideGrain = true` when the skin provides its own panel texture. Hooks are
+optional, but every replacement must supply its matching cleanup/visibility
+hooks. Surfaces and windows are reused: retain custom textures/frames for reuse,
+restore the original elements on release, and do not create frames on every
+repaint. Custom colors retain the selected skin; choosing Default restores the
+flat UI. Classic is a complete example using Blizzard artwork and templates.
+
+Classic's bag styling follows the Forever UI source at commit
+`15666a6e67938a1ab5caf041406464251db111ca`:
+
+- [Combined bag template and HeldBagLayout selection](https://github.com/Gethe/wow-ui-source/blob/15666a6e67938a1ab5caf041406464251db111ca/Interface/AddOns/Blizzard_UIPanels_Game/Mainline/ContainerFrame.xml)
+- [36px portrait offsets and title setup](https://github.com/Gethe/wow-ui-source/blob/15666a6e67938a1ab5caf041406464251db111ca/Interface/AddOns/Blizzard_UIPanels_Game/Mainline/ContainerFrame.lua)
+- [HeldBagLayout artwork](https://github.com/Gethe/wow-ui-source/blob/15666a6e67938a1ab5caf041406464251db111ca/Interface/AddOns/Blizzard_SharedXML/Mainline/NineSliceLayouts.lua)
+- [Forever border adjustments](https://github.com/Gethe/wow-ui-source/blob/15666a6e67938a1ab5caf041406464251db111ca/Interface/AddOns/Blizzard_SharedXML/Camelot/NineSliceLayoutOverrides.lua)
+
+Whispr instantiates the shared portrait template and calls its native styling
+methods. It does not instantiate the inventory frame or register bag events.

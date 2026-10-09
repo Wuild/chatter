@@ -53,8 +53,8 @@ function Debug:Incoming()
     end
 
     conversation.unread = math.min(conversation.unread, #conversation.messages)
-    window:Refresh(conversation.key)
     Whispr:PlayMessageSound()
+    window:Refresh(conversation.key)
     window:Receive(conversation.key)
     if addon.Extensions then
         addon.Extensions:ConversationEvent("MESSAGE_RECEIVED", conversation, { message = message, simulated = true })

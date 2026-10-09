@@ -46,3 +46,19 @@ function Database:RemoveDemoConversations(db)
         clean(data)
     end
 end
+
+-- Remove obsolete location metadata even for characters that are not logged in.
+function Database:RemoveCharacterLocations(db)
+    local function clean(data)
+        for _, conversation in pairs(data.conversations or {}) do
+            if conversation.character then
+                conversation.character.area = nil
+            end
+        end
+    end
+
+    clean(db.char)
+    for _, data in pairs(db.sv and db.sv.char or {}) do
+        clean(data)
+    end
+end

@@ -247,3 +247,33 @@ Whispr.db.global.notificationSoundEnabled = true
 Whispr:PlayMessageSound()
 equal(soundCalls, 2, "reenabling restores message sound")
 print("Notification sound mute and explicit preview behavior passed.")
+
+addon.Window.frame = {
+    IsShown = function()
+        return true
+    end,
+}
+
+addon.Window.IsReading = function()
+    return true
+end
+
+local beforeIncoming = soundCalls
+Whispr:Whisper("CHAT_MSG_WHISPER", "visible conversation", "Friend Name")
+equal(soundCalls, beforeIncoming + 1, "open active conversation still plays incoming sound")
+addon.Window.IsReading = function()
+    return false
+end
+
+Whispr:Whisper("CHAT_MSG_WHISPER", "another conversation", "Other Friend")
+equal(soundCalls, beforeIncoming + 2, "open inbox still plays sound for inactive conversation")
+local refresh = addon.Window.Refresh
+addon.Window.Refresh = function()
+    error("simulated redraw failure")
+end
+
+local ok = pcall(Whispr.Whisper, Whispr, "CHAT_MSG_WHISPER", "render failure", "Friend Name")
+assert(not ok, "test exercises the failing redraw")
+equal(soundCalls, beforeIncoming + 3, "redraw failure cannot suppress incoming sound")
+addon.Window.Refresh = refresh
+print("Incoming sounds play with an open window and before redraw failures.")

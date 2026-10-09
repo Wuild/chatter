@@ -35,6 +35,10 @@ local function known(value)
 end
 
 function Characters.Merge(conversation, details)
+    if conversation.character then
+        conversation.character.area = nil
+    end
+
     if not details or details.offline == true then
         return
     end
@@ -42,7 +46,7 @@ function Characters.Merge(conversation, details)
     Characters.revision = (Characters.revision or 0) + 1
     conversation.character = conversation.character or {}
     local info = conversation.character
-    for _, field in ipairs({ "guid", "race", "class", "classFile", "guild", "level", "area" }) do
+    for _, field in ipairs({ "guid", "race", "class", "classFile", "guild", "level" }) do
         local value = details[field]
         if not secret(value) then
             if field == "level" then
@@ -223,7 +227,7 @@ function Characters.RefreshSources(data)
             if friend then
                 add(
                     friend.name,
-                    { guid = friend.guid, class = friend.className, level = friend.level, area = friend.area },
+                    { guid = friend.guid, class = friend.className, level = friend.level },
                     friend.connected
                 )
             end
@@ -233,13 +237,9 @@ function Characters.RefreshSources(data)
     if GetNumGuildMembers and GetGuildRosterInfo then
         local guild = GetGuildInfo and GetGuildInfo("player")
         for index = 1, GetNumGuildMembers() do
-            local name, _, _, level, class, area, _, _, online, _, classFile, _, _, _, _, _, guid =
+            local name, _, _, level, class, _, _, _, online, _, classFile, _, _, _, _, _, guid =
                 GetGuildRosterInfo(index)
-            add(
-                name,
-                { guid = guid, class = class, classFile = classFile, guild = guild, level = level, area = area },
-                online
-            )
+            add(name, { guid = guid, class = class, classFile = classFile, guild = guild, level = level }, online)
         end
     end
 

@@ -95,6 +95,7 @@ InCombatLockdown = function()
 end
 
 load("theme")
+assert(loadfile("tests/support/themes.lua"))(addon)
 load("extensions")
 assert(loadfile("extensions/notification/module.lua"))("Whispr", addon)
 assert(loadfile("extensions/keywords/module.lua"))("Whispr", addon)
@@ -161,6 +162,17 @@ addon.Settings:Refresh()
 assert(notified == 1, "extensions and theme changes notify native options")
 local options = registry:GetOptionsTable("Whispr")("dialog", "AceConfigDialog-3.0")
 registry:ValidateOptionsTable(options, "Whispr")
+local clampUpdates = 0
+addon.Window.UpdateScreenClamping = function()
+    clampUpdates = clampUpdates + 1
+end
+
+local clampOption = options.args.general.args.conversations.args.clampWindowsToScreen
+assert(Whispr.db.global.clampWindowsToScreen == true, "windows are clamped by default")
+clampOption.set(nil, false)
+assert(Whispr.db.global.clampWindowsToScreen == false and clampUpdates == 1, "unclamping applies immediately")
+clampOption.set(nil, true)
+assert(Whispr.db.global.clampWindowsToScreen == true and clampUpdates == 2, "clamping can be restored")
 local count = 0
 for key, group in pairs(options.args) do
     assert(group.type == "group" and not group.inline, key .. " must be a category")
