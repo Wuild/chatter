@@ -3,7 +3,7 @@
 ## Notes: Whisper conversations for Retail, Classic, Anniversary and Forever
 ## Author: Wuild
 ## X-License: MIT
-## Version: @project-version@
+## Version: 1.0.4
 ## X-Curse-Project-ID: 1727008
 ## OptionalDeps: Ace3, LibDataBroker-1.1, LibDBIcon-1.0, LibSharedMedia-3.0, SharedMedia
 ## SavedVariables: WhisprSettings
@@ -12,6 +12,7 @@ scripts\embeds.xml
 scripts\locale.lua
 locales\enUS.lua
 locales\deDE.lua
+locales\zhCN.lua
 scripts\client.lua
 scripts\config.lua
 scripts\database.lua
